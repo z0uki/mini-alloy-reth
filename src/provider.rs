@@ -51,7 +51,7 @@ where
 /// to the database tables and static files.
 pub struct RethDbProvider<P, T> {
     inner: P,
-    filter: RethFilter,
+    filter: Arc<RethFilter>,
     db_path: PathBuf,
     _pd: PhantomData<T>,
 }
@@ -61,14 +61,12 @@ impl<P, T> RethDbProvider<P, T> {
     pub fn new(inner: P, db_path: PathBuf) -> Self {
         let db =
             Arc::new(open_db_read_only(db_path.join("db").as_path(), Default::default()).unwrap());
-        let task_executor = TokioTaskExecutor::default();
 
         let chain = MAINNET.clone();
-        let evm_config = EthEvmConfig::new(chain.clone());
         let provider_factory = ProviderFactory::<NodeTypesWithDBAdapter<_, Arc<DatabaseEnv>>>::new(
-            Arc::clone(&db),
-            Arc::clone(&chain),
-            StaticFileProvider::read_only(db_path.join("static_files"), false).unwrap(),
+            db,
+            chain,
+            StaticFileProvider::read_only(db_path.join("static_files"), true).unwrap(),
         );
 
         let provider = BlockchainProvider::new(
@@ -114,7 +112,7 @@ impl<P, T> RethDbProvider<P, T> {
         Self {
             inner,
             db_path,
-            filter: registry.eth_handlers().filter.clone(),
+            filter: Arc::new(registry.eth_handlers().filter.clone()),
             _pd: PhantomData,
         }
     }
