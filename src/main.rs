@@ -41,7 +41,6 @@ async fn batch_get_logs_from_db(provider: RethProvider) {
 
             let logs = provider.get_logs(&filter).await.unwrap();
             println!("Got {} logs from block {} to {}", logs.len(), start, end);
-            drop(logs);
         });
 
         tasks.push(task);

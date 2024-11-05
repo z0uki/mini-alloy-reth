@@ -26,7 +26,7 @@ use crate::layer::RethDbLayer;
 
 type RethProvider = BlockchainProvider<NodeTypesWithDBAdapter<EthereumNode, Arc<DatabaseEnv>>>;
 type RethApi = EthApi<RethProvider, RethTxPool, NoopNetwork, EthEvmConfig>;
-type RethFilter = EthFilter<RethProvider, RethTxPool, RethApi>;
+type RethFilter = EthFilter<Arc<RethProvider>, RethTxPool, RethApi>;
 type RethTxPool = NoopTransactionPool;
 
 /// Implement the `ProviderLayer` trait for the `RethDBLayer` struct.
@@ -70,11 +70,13 @@ impl<P, T> RethDbProvider<P, T> {
             StaticFileProvider::read_only(db_path.join("static_files"), false).unwrap(),
         );
 
-        let provider = BlockchainProvider::new(
-            provider_factory.clone(),
-            Arc::new(NoopBlockchainTree::default()),
-        )
-        .unwrap();
+        let provider = Arc::new(
+            BlockchainProvider::new(
+                provider_factory.clone(),
+                Arc::new(NoopBlockchainTree::default()),
+            )
+            .unwrap(),
+        );
 
         let state_cache = EthStateCache::spawn_with(
             provider.clone(),
