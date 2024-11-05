@@ -13,10 +13,7 @@ use reth_chain_state::test_utils::TestCanonStateSubscriptions;
 use reth_chainspec::{ChainSpec, ChainSpecBuilder, MAINNET};
 use reth_db::{open_db_read_only, DatabaseEnv};
 use reth_network_api::noop::NoopNetwork;
-use reth_node_ethereum::{
-    BasicBlockExecutorProvider, EthEvmConfig, EthExecutionStrategyFactory, EthExecutorProvider,
-    EthereumNode,
-};
+use reth_node_ethereum::{EthEvmConfig, EthExecutorProvider, EthereumNode};
 use reth_node_types::NodeTypesWithDBAdapter;
 use reth_provider::{
     providers::{BlockchainProvider, StaticFileProvider},
@@ -55,23 +52,7 @@ where
 /// to the database tables and static files.
 pub struct RethDbProvider<P, T> {
     inner: P,
-    registry: Arc<
-        RpcRegistryInner<
-            BlockchainProvider<NodeTypesWithDBAdapter<EthereumNode, Arc<DatabaseEnv>>>,
-            NoopTransactionPool,
-            NoopNetwork,
-            TokioTaskExecutor,
-            TestCanonStateSubscriptions,
-            EthApi<
-                BlockchainProvider<NodeTypesWithDBAdapter<EthereumNode, Arc<DatabaseEnv>>>,
-                NoopTransactionPool,
-                NoopNetwork,
-                EthEvmConfig,
-            >,
-            BasicBlockExecutorProvider<EthExecutionStrategyFactory>,
-            EthBeaconConsensus<ChainSpec>,
-        >,
-    >,
+    filter: RethFilter,
     db_path: PathBuf,
     _pd: PhantomData<T>,
 }
@@ -104,8 +85,7 @@ impl<P, T> RethDbProvider<P, T> {
             .with_executor(TokioTaskExecutor::default())
             .with_evm_config(EthEvmConfig::new(spec.clone()))
             .with_events(TestCanonStateSubscriptions::default())
-            .with_block_executor(EthExecutorProvider::ethereum(provider.chain_spec()))
-            .with_consensus(EthBeaconConsensus::new(spec));
+            .with_block_executor(EthExecutorProvider::ethereum(provider.chain_spec()));
 
         let registry =
             rpc_builder.into_registry(Default::default(), Box::new(EthApi::with_spawner));
@@ -113,7 +93,7 @@ impl<P, T> RethDbProvider<P, T> {
         Self {
             inner,
             db_path,
-            registry: Arc::new(registry),
+            filter: registry.eth_handlers().filter.clone(),
             _pd: PhantomData,
         }
     }
@@ -124,7 +104,7 @@ impl<P, T> RethDbProvider<P, T> {
     }
 
     pub fn eth_filter(&self) -> &EthFilter<RethProvider, RethTxPool, RethApi> {
-        &self.registry.eth_handlers().filter
+        &self.filter
     }
 }
 
