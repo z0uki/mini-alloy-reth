@@ -1,0 +1,27 @@
+[package]
+name = "mini-alloy-reth"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+alloy = { version = "0.5.4", features = ["full"] }
+eyre = "0.6"
+tokio = { version = "1.40.0", features = ["macros", "rt-multi-thread"] }
+async-trait = "0.1.82"
+
+# reth d5f0103
+reth-blockchain-tree = { git = "https://github.com/paradigmxyz/reth", package = "reth-blockchain-tree", rev = "d5f0103" }
+reth-db = { git = "https://github.com/paradigmxyz/reth", package = "reth-db", rev = "d5f0103" }
+reth-provider = { git = "https://github.com/paradigmxyz/reth", package = "reth-provider", rev = "d5f0103" }
+reth-node-types = { git = "https://github.com/paradigmxyz/reth", package = "reth-node-types", rev = "d5f0103" }
+reth-chainspec = { git = "https://github.com/paradigmxyz/reth", package = "reth-chainspec", rev = "d5f0103" }
+reth-node-ethereum = { git = "https://github.com/paradigmxyz/reth", package = "reth-node-ethereum", rev = "d5f0103" }
+reth-rpc-eth-types = { git = "https://github.com/paradigmxyz/reth", package = "reth-rpc-eth-types", rev = "d5f0103" }
+reth-beacon-consensus = { git = "https://github.com/paradigmxyz/reth", package = "reth-beacon-consensus", rev = "d5f0103" }
+reth-tasks = { git = "https://github.com/paradigmxyz/reth", package = "reth-tasks", rev = "d5f0103" }
+reth-transaction-pool = { git = "https://github.com/paradigmxyz/reth", package = "reth-transaction-pool", rev = "d5f0103" }
+reth-rpc = { git = "https://github.com/paradigmxyz/reth", package = "reth-rpc", rev = "d5f0103" }
+reth-network-api = { git = "https://github.com/paradigmxyz/reth", package = "reth-network-api", rev = "d5f0103" }
+reth-rpc-server-types = { git = "https://github.com/paradigmxyz/reth", package = "reth-rpc-server-types", rev = "d5f0103" }
+reth-rpc-eth-api = { git = "https://github.com/paradigmxyz/reth", package = "reth-rpc-eth-api", rev = "d5f0103" }
+reth-primitives = { git = "https://github.com/paradigmxyz/reth", package = "reth-primitives", rev = "d5f0103" }
