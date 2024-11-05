@@ -798,9 +798,13 @@ checksum = "cdd7f8b3a7c65ca09b3c7bdd7c7d72d7423d026f5247eda96af53d24e58315c1"
 dependencies = [
  "alloy-primitives",
  "alloy-rlp",
+ "arbitrary",
  "arrayvec",
+ "derive_arbitrary",
  "derive_more",
  "nybbles",
+ "proptest",
+ "proptest-derive",
  "serde",
  "smallvec",
  "tracing",
@@ -1248,6 +1252,7 @@ version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b048fb63fd8b5923fc5aa7b340d8e156aec7ec02f0c78fa8a6ddc2613f6f71de"
 dependencies = [
+ "arbitrary",
  "serde",
 ]
 
@@ -2773,6 +2778,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "hash-db"
+version = "0.15.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d23bd4e7b5eda0d0f3a307e8b381fdc8ba9000f26fbe912250c0a4cc3956364a"
+
+[[package]]
 name = "hashbrown"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4033,6 +4044,7 @@ dependencies = [
  "eyre",
  "reth-beacon-consensus",
  "reth-blockchain-tree",
+ "reth-chain-state",
  "reth-chainspec",
  "reth-db",
  "reth-network-api",
@@ -4041,6 +4053,7 @@ dependencies = [
  "reth-primitives",
  "reth-provider",
  "reth-rpc",
+ "reth-rpc-builder",
  "reth-rpc-eth-api",
  "reth-rpc-eth-types",
  "reth-rpc-server-types",
@@ -4348,6 +4361,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "95f06be0417d97f81fe4e5c86d7d01b392655a9cac9c19a848aa033e18937b23"
 dependencies = [
  "alloy-rlp",
+ "arbitrary",
  "const-hex",
  "proptest",
  "serde",
@@ -4714,6 +4728,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "953ec861398dccce10c670dfeaf3ec4911ca479e9c02154b3a215178c5f566f2"
 
 [[package]]
+name = "plain_hasher"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e19e6491bdde87c2c43d70f4c194bc8a758f2eb732df00f61e43f7362e3b4cc"
+dependencies = [
+ "crunchy",
+]
+
+[[package]]
 name = "pollster"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4879,6 +4902,16 @@ dependencies = [
  "rusty-fork",
  "tempfile",
  "unarray",
+]
+
+[[package]]
+name = "proptest-arbitrary-interop"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1981e49bd2432249da8b0e11e5557099a8e74690d6b94e721f7dc0bb7f3555f"
+dependencies = [
+ "arbitrary",
+ "proptest",
 ]
 
 [[package]]
@@ -5335,13 +5368,17 @@ name = "reth-chain-state"
 version = "1.1.0"
 source = "git+https://github.com/paradigmxyz/reth?rev=d5f0103#d5f01036016263fbad6a3af9dc3707b2701adc1d"
 dependencies = [
+ "alloy-consensus",
  "alloy-eips",
  "alloy-primitives",
+ "alloy-signer",
+ "alloy-signer-local",
  "auto_impl",
  "derive_more",
  "metrics",
  "parking_lot",
  "pin-project",
+ "rand",
  "reth-chainspec",
  "reth-errors",
  "reth-execution-types",
@@ -5349,6 +5386,7 @@ dependencies = [
  "reth-primitives",
  "reth-storage-api",
  "reth-trie",
+ "revm",
  "tokio",
  "tokio-stream",
  "tracing",
@@ -5401,11 +5439,13 @@ dependencies = [
  "alloy-genesis",
  "alloy-primitives",
  "alloy-trie",
+ "arbitrary",
  "bytes",
  "modular-bitfield",
  "op-alloy-consensus",
  "reth-codecs-derive",
  "serde",
+ "visibility",
 ]
 
 [[package]]
@@ -6693,10 +6733,13 @@ dependencies = [
  "alloy-genesis",
  "alloy-primitives",
  "alloy-rlp",
+ "arbitrary",
  "byteorder",
  "bytes",
  "derive_more",
  "modular-bitfield",
+ "proptest",
+ "proptest-arbitrary-interop",
  "reth-codecs",
  "revm-primitives",
  "roaring",
@@ -7167,6 +7210,7 @@ version = "1.1.0"
 source = "git+https://github.com/paradigmxyz/reth?rev=d5f0103#d5f01036016263fbad6a3af9dc3707b2701adc1d"
 dependencies = [
  "alloy-primitives",
+ "arbitrary",
  "bytes",
  "modular-bitfield",
  "reth-codecs",
@@ -7338,6 +7382,7 @@ dependencies = [
  "serde",
  "serde_with",
  "tracing",
+ "triehash",
 ]
 
 [[package]]
@@ -7350,10 +7395,13 @@ dependencies = [
  "alloy-primitives",
  "alloy-rlp",
  "alloy-trie",
+ "arbitrary",
  "bytes",
  "derive_more",
+ "hash-db",
  "itertools 0.13.0",
  "nybbles",
+ "plain_hasher",
  "reth-codecs",
  "reth-primitives-traits",
  "revm-primitives",
@@ -8157,6 +8205,7 @@ version = "1.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
 dependencies = [
+ "arbitrary",
  "serde",
 ]
 
@@ -8827,6 +8876,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "triehash"
+version = "0.8.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1631b201eb031b563d2e85ca18ec8092508e262a3196ce9bd10a67ec87b9f5c"
+dependencies = [
+ "hash-db",
+ "rlp",
+]
+
+[[package]]
 name = "trust-dns-proto"
 version = "0.23.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9077,6 +9136,17 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
+
+[[package]]
+name = "visibility"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d674d135b4a8c1d7e813e2f8d1c9a58308aee4a680323066025e53132218bd91"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.87",
+]
 
 [[package]]
 name = "wait-timeout"

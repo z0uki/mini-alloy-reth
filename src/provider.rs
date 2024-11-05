@@ -1,32 +1,34 @@
 use std::{marker::PhantomData, path::PathBuf, sync::Arc};
 
+use crate::layer::RethDbLayer;
 use alloy::{
     providers::{Provider, ProviderLayer, RootProvider},
     rpc::types::{Filter, Log},
     transports::{Transport, TransportErrorKind, TransportResult},
 };
 use async_trait::async_trait;
+use reth_beacon_consensus::EthBeaconConsensus;
 use reth_blockchain_tree::noop::NoopBlockchainTree;
-use reth_chainspec::MAINNET;
+use reth_chain_state::test_utils::TestCanonStateSubscriptions;
+use reth_chainspec::{ChainSpecBuilder, MAINNET};
 use reth_db::{open_db_read_only, DatabaseEnv};
 use reth_network_api::noop::NoopNetwork;
-use reth_node_ethereum::{EthEvmConfig, EthereumNode};
+use reth_node_ethereum::{EthEvmConfig, EthExecutorProvider, EthereumNode};
 use reth_node_types::NodeTypesWithDBAdapter;
 use reth_provider::{
     providers::{BlockchainProvider, StaticFileProvider},
-    ProviderFactory,
+    ChainSpecProvider, ProviderFactory,
 };
-use reth_rpc::{eth::EthTxBuilder, EthApi, EthFilter};
+use reth_rpc::{EthApi, EthFilter};
+use reth_rpc_builder::{RpcModuleBuilder, TransportRpcModuleConfig};
 use reth_rpc_eth_api::filter::EthFilterApiServer;
-use reth_rpc_eth_types::{EthFilterConfig, EthStateCache, EthStateCacheConfig};
+use reth_rpc_server_types::RethRpcModule;
 use reth_tasks::TokioTaskExecutor;
 use reth_transaction_pool::noop::NoopTransactionPool;
 
-use crate::layer::RethDbLayer;
-
 type RethProvider = BlockchainProvider<NodeTypesWithDBAdapter<EthereumNode, Arc<DatabaseEnv>>>;
 type RethApi = EthApi<RethProvider, RethTxPool, NoopNetwork, EthEvmConfig>;
-type RethFilter = EthFilter<Arc<RethProvider>, RethTxPool, RethApi>;
+type RethFilter = EthFilter<RethProvider, RethTxPool, RethApi>;
 type RethTxPool = NoopTransactionPool;
 
 /// Implement the `ProviderLayer` trait for the `RethDBLayer` struct.
@@ -47,7 +49,6 @@ where
 ///
 /// It holds the `reth_provider::ProviderFactory` that enables read-only access
 /// to the database tables and static files.
-#[derive(Clone)]
 pub struct RethDbProvider<P, T> {
     inner: P,
     filter: RethFilter,
@@ -70,34 +71,50 @@ impl<P, T> RethDbProvider<P, T> {
             StaticFileProvider::read_only(db_path.join("static_files"), false).unwrap(),
         );
 
-        let provider = Arc::new(
-            BlockchainProvider::new(
-                provider_factory.clone(),
-                Arc::new(NoopBlockchainTree::default()),
-            )
-            .unwrap(),
-        );
+        let provider = BlockchainProvider::new(
+            provider_factory.clone(),
+            Arc::new(NoopBlockchainTree::default()),
+        )
+        .unwrap();
+        let spec = Arc::new(ChainSpecBuilder::mainnet().build());
+        let rpc_builder = RpcModuleBuilder::default()
+            .with_provider(provider.clone())
+            // Rest is just noops that do nothing
+            .with_noop_pool()
+            .with_noop_network()
+            .with_executor(TokioTaskExecutor::default())
+            .with_evm_config(EthEvmConfig::new(spec.clone()))
+            .with_events(TestCanonStateSubscriptions::default())
+            .with_block_executor(EthExecutorProvider::ethereum(provider.chain_spec()))
+            .with_consensus(EthBeaconConsensus::new(spec));
 
-        let state_cache = EthStateCache::spawn_with(
-            provider.clone(),
-            EthStateCacheConfig::default(),
-            task_executor.clone(),
-            evm_config.clone(),
-        );
+        let registry =
+            rpc_builder.into_registry(Default::default(), Box::new(EthApi::with_spawner));
 
-        let filter = EthFilter::new(
-            provider.clone(),
-            NoopTransactionPool::default(),
-            state_cache.clone(),
-            EthFilterConfig::default(),
-            Box::new(task_executor.clone()),
-            EthTxBuilder,
-        );
+        // // Pick which namespaces to expose.
+        // let config = TransportRpcModuleConfig::default().with_http([RethRpcModule::Eth]);
+        // let mut server = rpc_builder.build(config, Box::new(EthApi::with_spawner));
+
+        // let state_cache = EthStateCache::spawn_with(
+        //     provider.clone(),
+        //     EthStateCacheConfig::default(),
+        //     task_executor.clone(),
+        //     evm_config.clone(),
+        // );
+
+        // let filter = EthFilter::new(
+        //     provider.clone(),
+        //     NoopTransactionPool::default(),
+        //     state_cache.clone(),
+        //     EthFilterConfig::default(),
+        //     Box::new(task_executor.clone()),
+        //     EthTxBuilder,
+        // );
 
         Self {
             inner,
             db_path,
-            filter,
+            filter: registry.eth_handlers().filter.clone(),
             _pd: PhantomData,
         }
     }

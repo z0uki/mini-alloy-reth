@@ -25,3 +25,7 @@ reth-network-api = { git = "https://github.com/paradigmxyz/reth", package = "ret
 reth-rpc-server-types = { git = "https://github.com/paradigmxyz/reth", package = "reth-rpc-server-types", rev = "d5f0103" }
 reth-rpc-eth-api = { git = "https://github.com/paradigmxyz/reth", package = "reth-rpc-eth-api", rev = "d5f0103" }
 reth-primitives = { git = "https://github.com/paradigmxyz/reth", package = "reth-primitives", rev = "d5f0103" }
+reth-rpc-builder = { git = "https://github.com/paradigmxyz/reth", package = "reth-rpc-builder", rev = "d5f0103" }
+reth-chain-state = { git = "https://github.com/paradigmxyz/reth", package = "reth-chain-state", rev = "d5f0103", features = [
+    "test-utils",
+] }
