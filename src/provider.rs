@@ -122,12 +122,10 @@ where
     }
 
     async fn get_logs(&self, filter: &Filter) -> TransportResult<Vec<Log>> {
-        let logs = self
+        Ok(self
             .eth_filter()
             .logs(filter.to_owned())
             .await
-            .map_err(TransportErrorKind::custom)?;
-
-        Ok(logs)
+            .map_err(TransportErrorKind::custom)?)
     }
 }
