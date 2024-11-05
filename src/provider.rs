@@ -16,7 +16,7 @@ use reth_network_api::noop::NoopNetwork;
 use reth_node_ethereum::{EthEvmConfig, EthExecutorProvider, EthereumNode};
 use reth_node_types::NodeTypesWithDBAdapter;
 use reth_provider::{
-    providers::{BlockchainProvider, StaticFileProvider},
+    providers::{BlockchainProvider, BlockchainProvider2, StaticFileProvider},
     ChainSpecProvider, ProviderFactory,
 };
 use reth_rpc::{EthApi, EthFilter};
@@ -25,7 +25,7 @@ use reth_rpc_eth_api::filter::EthFilterApiServer;
 use reth_tasks::TokioTaskExecutor;
 use reth_transaction_pool::noop::NoopTransactionPool;
 
-type RethProvider = BlockchainProvider<NodeTypesWithDBAdapter<EthereumNode, Arc<DatabaseEnv>>>;
+type RethProvider = BlockchainProvider2<NodeTypesWithDBAdapter<EthereumNode, Arc<DatabaseEnv>>>;
 type RethApi = EthApi<RethProvider, RethTxPool, NoopNetwork, EthEvmConfig>;
 type RethFilter = EthFilter<RethProvider, RethTxPool, RethApi>;
 type RethTxPool = NoopTransactionPool;
@@ -71,9 +71,9 @@ impl<P, T> RethDbProvider<P, T> {
                 StaticFileProvider::read_only(db_path.join("static_files"), true).unwrap(),
             );
 
-        let provider = BlockchainProvider::new(
+        let provider = BlockchainProvider2::new(
             provider_factory.clone(),
-            Arc::new(NoopBlockchainTree::default()),
+            // Arc::new(NoopBlockchainTree::default()),
         )
         .unwrap();
         let spec = Arc::new(ChainSpecBuilder::mainnet().build());
