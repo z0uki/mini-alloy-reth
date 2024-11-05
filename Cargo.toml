@@ -4,28 +4,28 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-alloy = { version = "0.5.4", features = ["full"] }
+alloy = { version = "0.4.2", features = ["full"] }
 eyre = "0.6"
-tokio = { version = "1.40.0", features = ["macros", "rt-multi-thread"] }
-async-trait = "0.1.82"
+tokio = { version = "1.39", features = ["macros", "rt-multi-thread"] }
+async-trait = "0.1.68"
 
 # reth d5f0103
-reth-blockchain-tree = { git = "https://github.com/paradigmxyz/reth", package = "reth-blockchain-tree", rev = "d5f0103" }
-reth-db = { git = "https://github.com/paradigmxyz/reth", package = "reth-db", rev = "d5f0103" }
-reth-provider = { git = "https://github.com/paradigmxyz/reth", package = "reth-provider", rev = "d5f0103" }
-reth-node-types = { git = "https://github.com/paradigmxyz/reth", package = "reth-node-types", rev = "d5f0103" }
-reth-chainspec = { git = "https://github.com/paradigmxyz/reth", package = "reth-chainspec", rev = "d5f0103" }
-reth-node-ethereum = { git = "https://github.com/paradigmxyz/reth", package = "reth-node-ethereum", rev = "d5f0103" }
-reth-rpc-eth-types = { git = "https://github.com/paradigmxyz/reth", package = "reth-rpc-eth-types", rev = "d5f0103" }
-reth-beacon-consensus = { git = "https://github.com/paradigmxyz/reth", package = "reth-beacon-consensus", rev = "d5f0103" }
-reth-tasks = { git = "https://github.com/paradigmxyz/reth", package = "reth-tasks", rev = "d5f0103" }
-reth-transaction-pool = { git = "https://github.com/paradigmxyz/reth", package = "reth-transaction-pool", rev = "d5f0103" }
-reth-rpc = { git = "https://github.com/paradigmxyz/reth", package = "reth-rpc", rev = "d5f0103" }
-reth-network-api = { git = "https://github.com/paradigmxyz/reth", package = "reth-network-api", rev = "d5f0103" }
-reth-rpc-server-types = { git = "https://github.com/paradigmxyz/reth", package = "reth-rpc-server-types", rev = "d5f0103" }
-reth-rpc-eth-api = { git = "https://github.com/paradigmxyz/reth", package = "reth-rpc-eth-api", rev = "d5f0103" }
-reth-primitives = { git = "https://github.com/paradigmxyz/reth", package = "reth-primitives", rev = "d5f0103" }
-reth-rpc-builder = { git = "https://github.com/paradigmxyz/reth", package = "reth-rpc-builder", rev = "d5f0103" }
-reth-chain-state = { git = "https://github.com/paradigmxyz/reth", package = "reth-chain-state", rev = "d5f0103", features = [
+reth-blockchain-tree = { git = "https://github.com/paradigmxyz/reth", package = "reth-blockchain-tree", tag = "v1.1.0" }
+reth-db = { git = "https://github.com/paradigmxyz/reth", package = "reth-db", tag = "v1.1.0" }
+reth-provider = { git = "https://github.com/paradigmxyz/reth", package = "reth-provider", tag = "v1.1.0" }
+reth-node-types = { git = "https://github.com/paradigmxyz/reth", package = "reth-node-types", tag = "v1.1.0" }
+reth-chainspec = { git = "https://github.com/paradigmxyz/reth", package = "reth-chainspec", tag = "v1.1.0" }
+reth-node-ethereum = { git = "https://github.com/paradigmxyz/reth", package = "reth-node-ethereum", tag = "v1.1.0" }
+reth-rpc-eth-types = { git = "https://github.com/paradigmxyz/reth", package = "reth-rpc-eth-types", tag = "v1.1.0" }
+reth-beacon-consensus = { git = "https://github.com/paradigmxyz/reth", package = "reth-beacon-consensus", tag = "v1.1.0" }
+reth-tasks = { git = "https://github.com/paradigmxyz/reth", package = "reth-tasks", tag = "v1.1.0" }
+reth-transaction-pool = { git = "https://github.com/paradigmxyz/reth", package = "reth-transaction-pool", tag = "v1.1.0" }
+reth-rpc = { git = "https://github.com/paradigmxyz/reth", package = "reth-rpc", tag = "v1.1.0" }
+reth-network-api = { git = "https://github.com/paradigmxyz/reth", package = "reth-network-api", tag = "v1.1.0" }
+reth-rpc-server-types = { git = "https://github.com/paradigmxyz/reth", package = "reth-rpc-server-types", tag = "v1.1.0" }
+reth-rpc-eth-api = { git = "https://github.com/paradigmxyz/reth", package = "reth-rpc-eth-api", tag = "v1.1.0" }
+reth-primitives = { git = "https://github.com/paradigmxyz/reth", package = "reth-primitives", tag = "v1.1.0" }
+reth-rpc-builder = { git = "https://github.com/paradigmxyz/reth", package = "reth-rpc-builder", tag = "v1.1.0" }
+reth-chain-state = { git = "https://github.com/paradigmxyz/reth", package = "reth-chain-state", tag = "v1.1.0", features = [
     "test-utils",
 ] }
