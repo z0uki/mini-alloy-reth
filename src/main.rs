@@ -32,17 +32,16 @@ async fn batch_get_logs_from_db(provider: Arc<RethProvider>) {
     let latest_block = provider.get_block_number().await.unwrap();
     println!("Latest block: {}", latest_block);
 
-    for start in (0..latest_block).step_by(20) {
-        let end = start + 20;
+    for start in (0..latest_block) {
         let provider = provider.clone();
         let semaphore = semaphore.clone();
 
         let task = tokio::spawn(async move {
             let _permit = semaphore.clone().acquire_owned().await.unwrap();
-            let filter = Filter::new().from_block(start).to_block(end);
+            let filter = Filter::new().from_block(start).to_block(start);
 
             let logs = provider.get_logs(&filter).await.unwrap();
-            println!("Got {} logs from block {} to {}", logs.len(), start, end);
+            println!("Got {} logs from block {}", logs.len(), start);
         });
 
         tasks.push(task);
