@@ -14,16 +14,18 @@ async fn main() {
     let ws = WsConnect::new("ws://localhost:8545");
     let db_path = "/root/.local/share/reth/mainnet".into();
 
-    let provider = ProviderBuilder::new()
-        .layer(RethDbLayer::new(db_path))
-        .on_ws(ws)
-        .await
-        .unwrap();
+    let provider = Arc::new(
+        ProviderBuilder::new()
+            .layer(RethDbLayer::new(db_path))
+            .on_ws(ws)
+            .await
+            .unwrap(),
+    );
 
     batch_get_logs_from_db(provider).await;
 }
 
-async fn batch_get_logs_from_db(provider: RethProvider) {
+async fn batch_get_logs_from_db(provider: Arc<RethProvider>) {
     let semaphore = Arc::new(tokio::sync::Semaphore::new(50));
     let mut tasks = Vec::new();
 
