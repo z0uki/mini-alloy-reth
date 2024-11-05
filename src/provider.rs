@@ -10,17 +10,20 @@ use async_trait::async_trait;
 use reth_beacon_consensus::EthBeaconConsensus;
 use reth_blockchain_tree::noop::NoopBlockchainTree;
 use reth_chain_state::test_utils::TestCanonStateSubscriptions;
-use reth_chainspec::{ChainSpecBuilder, MAINNET};
+use reth_chainspec::{ChainSpec, ChainSpecBuilder, MAINNET};
 use reth_db::{open_db_read_only, DatabaseEnv};
 use reth_network_api::noop::NoopNetwork;
-use reth_node_ethereum::{EthEvmConfig, EthExecutorProvider, EthereumNode};
+use reth_node_ethereum::{
+    BasicBlockExecutorProvider, EthEvmConfig, EthExecutionStrategyFactory, EthExecutorProvider,
+    EthereumNode,
+};
 use reth_node_types::NodeTypesWithDBAdapter;
 use reth_provider::{
     providers::{BlockchainProvider, StaticFileProvider},
     ChainSpecProvider, ProviderFactory,
 };
 use reth_rpc::{EthApi, EthFilter};
-use reth_rpc_builder::{EthHandlers, RpcModuleBuilder};
+use reth_rpc_builder::{EthHandlers, RpcModuleBuilder, RpcRegistryInner};
 use reth_rpc_eth_api::filter::EthFilterApiServer;
 use reth_tasks::TokioTaskExecutor;
 use reth_transaction_pool::noop::NoopTransactionPool;
@@ -52,7 +55,23 @@ where
 /// to the database tables and static files.
 pub struct RethDbProvider<P, T> {
     inner: P,
-    eth: Arc<RethHandler>,
+    registry: Arc<
+        RpcRegistryInner<
+            BlockchainProvider<NodeTypesWithDBAdapter<EthereumNode, Arc<DatabaseEnv>>>,
+            NoopTransactionPool,
+            NoopNetwork,
+            TokioTaskExecutor,
+            TestCanonStateSubscriptions,
+            EthApi<
+                BlockchainProvider<NodeTypesWithDBAdapter<EthereumNode, Arc<DatabaseEnv>>>,
+                NoopTransactionPool,
+                NoopNetwork,
+                EthEvmConfig,
+            >,
+            BasicBlockExecutorProvider<EthExecutionStrategyFactory>,
+            EthBeaconConsensus<ChainSpec>,
+        >,
+    >,
     db_path: PathBuf,
     _pd: PhantomData<T>,
 }
@@ -88,33 +107,13 @@ impl<P, T> RethDbProvider<P, T> {
             .with_block_executor(EthExecutorProvider::ethereum(provider.chain_spec()))
             .with_consensus(EthBeaconConsensus::new(spec));
 
-        let mut registry =
+        let registry =
             rpc_builder.into_registry(Default::default(), Box::new(EthApi::with_spawner));
-
-        // // Pick which namespaces to expose.
-        // let config = TransportRpcModuleConfig::default().with_http([RethRpcModule::Eth]);
-        // let mut server = rpc_builder.build(config, Box::new(EthApi::with_spawner));
-
-        // let state_cache = EthStateCache::spawn_with(
-        //     provider.clone(),
-        //     EthStateCacheConfig::default(),
-        //     task_executor.clone(),
-        //     evm_config.clone(),
-        // );
-
-        // let filter = EthFilter::new(
-        //     provider.clone(),
-        //     NoopTransactionPool::default(),
-        //     state_cache.clone(),
-        //     EthFilterConfig::default(),
-        //     Box::new(task_executor.clone()),
-        //     EthTxBuilder,
-        // );
 
         Self {
             inner,
             db_path,
-            eth: Arc::new(registry.eth_handlers().clone()),
+            registry: Arc::new(registry),
             _pd: PhantomData,
         }
     }
@@ -125,7 +124,7 @@ impl<P, T> RethDbProvider<P, T> {
     }
 
     pub fn eth_filter(&self) -> &EthFilter<RethProvider, RethTxPool, RethApi> {
-        &self.eth.filter
+        &self.registry.eth_handlers().filter
     }
 }
 
