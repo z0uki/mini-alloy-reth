@@ -62,11 +62,11 @@ impl<P, T> RethDbProvider<P, T> {
         }
 
         let mut all_logs = Vec::new();
-        // let filter_params = FilteredParams::new(Some(filter.clone()));
+        let filter_params = FilteredParams::new(Some(filter.clone()));
 
         // // derive bloom filters from filter input, so we can check headers for matching logs
-        // let address_filter = FilteredParams::address_filter(&filter.address);
-        // let topics_filter = FilteredParams::topics_filter(&filter.topics);
+        let address_filter = FilteredParams::address_filter(&filter.address);
+        let topics_filter = FilteredParams::topics_filter(&filter.topics);
 
         // // loop over the range of new blocks and check logs if the filter matches the log's bloom
         // // filter
