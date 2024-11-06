@@ -152,8 +152,8 @@ where
         Self { inner }
     }
 
-    pub fn provider(&self) -> Result<DB::Provider, ProviderError> {
-        self.inner.database_provider_ro()
+    pub fn provider(&self) -> Result<Arc<DB::Provider>, ProviderError> {
+        self.inner.database_provider_ro().map(Arc::new)
     }
 
     fn provider_at(&self, block_id: BlockId) -> Result<Box<dyn StateProvider>, ProviderError> {
