@@ -73,39 +73,39 @@ impl<P, T> RethDbProvider<P, T> {
             for idx in from..=to {
                 let block_hash = provider.block_hash(idx)?.ok_or_eyre("header not found")?;
 
-                let header = provider
-                    .header(&block_hash)?
-                    .ok_or_else(|| eyre::eyre!("block not found"))?;
+                // let header = provider
+                //     .header(&block_hash)?
+                //     .ok_or_else(|| eyre::eyre!("block not found"))?;
 
-                // only if filter matches
-                if FilteredParams::matches_address(header.logs_bloom, &address_filter)
-                    && FilteredParams::matches_topics(header.logs_bloom, &topics_filter)
-                {
-                    // let block_hash = match headers.get(block + 1) {
-                    //     Some(parent) => parent.parent_hash,
-                    //     None => provider
-                    //         .block_hash(header.number)?
-                    //         .ok_or_eyre("header not found")?,
-                    // };
-                    //
+                // // only if filter matches
+                // if FilteredParams::matches_address(header.logs_bloom, &address_filter)
+                //     && FilteredParams::matches_topics(header.logs_bloom, &topics_filter)
+                // {
+                //     // let block_hash = match headers.get(block + 1) {
+                //     //     Some(parent) => parent.parent_hash,
+                //     //     None => provider
+                //     //         .block_hash(header.number)?
+                //     //         .ok_or_eyre("header not found")?,
+                //     // };
+                //     //
 
-                    let num_hash = BlockNumHash::new(header.number, block_hash);
+                //     let num_hash = BlockNumHash::new(header.number, block_hash);
 
-                    if let Some(receipts) = provider
-                        .receipts_by_block(num_hash.hash.into())
-                        .map_err(|_| eyre::eyre!("failed to get receipts for block"))?
-                    {
-                        append_matching_block_logs(
-                            &mut all_logs,
-                            ProviderOrBlock::Provider(&provider),
-                            &filter_params,
-                            num_hash,
-                            &receipts,
-                            false,
-                            header.timestamp,
-                        )?;
-                    }
-                }
+                //     if let Some(receipts) = provider
+                //         .receipts_by_block(num_hash.hash.into())
+                //         .map_err(|_| eyre::eyre!("failed to get receipts for block"))?
+                //     {
+                //         append_matching_block_logs(
+                //             &mut all_logs,
+                //             ProviderOrBlock::Provider(&provider),
+                //             &filter_params,
+                //             num_hash,
+                //             &receipts,
+                //             false,
+                //             header.timestamp,
+                //         )?;
+                //     }
+                // }
             }
 
             // for (idx, header) in headers.iter().enumerate() {
