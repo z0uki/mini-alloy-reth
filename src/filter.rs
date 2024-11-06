@@ -27,19 +27,16 @@ impl<P, T> RethDbProvider<P, T> {
                 from_block,
                 to_block,
             } => {
+                let provider = self.provider_factory.provider().unwrap();
+
                 // compute the range
-                let info = self.provider.chain_info()?;
+                let info = provider.chain_info()?;
+                drop(provider);
 
                 // we start at the most recent block if unset in filter
                 let start_block = info.best_number;
-                let from = from_block
-                    .map(|num| self.provider.convert_block_number(num))
-                    .transpose()?
-                    .flatten();
-                let to = to_block
-                    .map(|num| self.provider.convert_block_number(num))
-                    .transpose()?
-                    .flatten();
+                let from = from_block.map(|num| num.as_number()).flatten();
+                let to = to_block.map(|num| num.as_number()).flatten();
                 let (from_block_number, to_block_number) =
                     logs_utils::get_filter_block_range(from, to, start_block, info);
                 self.get_logs_in_block_range(&filter, from_block_number, to_block_number, info)

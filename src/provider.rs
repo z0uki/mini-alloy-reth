@@ -18,8 +18,8 @@ use reth_node_ethereum::{EthEvmConfig, EthExecutorProvider, EthereumNode};
 use reth_node_types::NodeTypesWithDBAdapter;
 use reth_provider::{
     providers::{BlockchainProvider, StaticFileProvider},
-    BlockNumReader, BlockReader, ChainSpecProvider, DatabaseProviderFactory, ProviderError,
-    ProviderFactory, ReceiptProvider, StateProvider, TryIntoHistoricalStateProvider,
+    BlockIdReader, BlockNumReader, BlockReader, ChainSpecProvider, DatabaseProviderFactory,
+    ProviderError, ProviderFactory, ReceiptProvider, StateProvider, TryIntoHistoricalStateProvider,
 };
 use reth_rpc::{EthApi, EthFilter};
 use reth_rpc_builder::{EthHandlers, RpcModuleBuilder};
@@ -54,9 +54,7 @@ where
 /// to the database tables and static files.
 pub struct RethDbProvider<P, T> {
     inner: P,
-    pub(crate) provider: RethProvider,
     pub(crate) provider_factory: DbAccessor,
-    filter: RethFilter,
     db_path: PathBuf,
     _pd: PhantomData<T>,
 }
@@ -75,25 +73,25 @@ impl<P, T> RethDbProvider<P, T> {
                 StaticFileProvider::read_only(db_path.join("static_files"), true).unwrap(),
             );
 
-        let provider = BlockchainProvider::new(
-            provider_factory.clone(),
-            Arc::new(NoopBlockchainTree::default()),
-        )
-        .unwrap();
-        let spec = Arc::new(ChainSpecBuilder::mainnet().build());
-        let rpc_builder = RpcModuleBuilder::default()
-            .with_provider(provider.clone())
-            // Rest is just noops that do nothing
-            .with_noop_pool()
-            .with_noop_network()
-            .with_executor(TokioTaskExecutor::default())
-            .with_evm_config(EthEvmConfig::new(spec.clone()))
-            .with_events(TestCanonStateSubscriptions::default())
-            .with_consensus(EthBeaconConsensus::new(spec))
-            .with_block_executor(EthExecutorProvider::ethereum(provider.chain_spec()));
+        // let provider = BlockchainProvider::new(
+        //     provider_factory.clone(),
+        //     Arc::new(NoopBlockchainTree::default()),
+        // )
+        // .unwrap();
+        // let spec = Arc::new(ChainSpecBuilder::mainnet().build());
+        // let rpc_builder = RpcModuleBuilder::default()
+        //     .with_provider(provider.clone())
+        //     // Rest is just noops that do nothing
+        //     .with_noop_pool()
+        //     .with_noop_network()
+        //     .with_executor(TokioTaskExecutor::default())
+        //     .with_evm_config(EthEvmConfig::new(spec.clone()))
+        //     .with_events(TestCanonStateSubscriptions::default())
+        //     .with_consensus(EthBeaconConsensus::new(spec))
+        //     .with_block_executor(EthExecutorProvider::ethereum(provider.chain_spec()));
 
-        let registry =
-            rpc_builder.into_registry(Default::default(), Box::new(EthApi::with_spawner));
+        // let registry =
+        //     rpc_builder.into_registry(Default::default(), Box::new(EthApi::with_spawner));
 
         let db_accessor: DbAccessor<
             ProviderFactory<NodeTypesWithDBAdapter<EthereumNode, Arc<DatabaseEnv>>>,
@@ -102,9 +100,7 @@ impl<P, T> RethDbProvider<P, T> {
         Self {
             inner,
             db_path,
-            provider,
             provider_factory: db_accessor,
-            filter: registry.eth_handlers().filter.clone(),
             _pd: PhantomData,
         }
     }
@@ -112,10 +108,6 @@ impl<P, T> RethDbProvider<P, T> {
     /// Get the DB Path
     pub fn db_path(&self) -> PathBuf {
         self.db_path.clone()
-    }
-
-    pub fn eth_filter(&self) -> &EthFilter<RethProvider, RethTxPool, RethApi> {
-        &self.filter
     }
 
     pub const fn factory(&self) -> &DbAccessor {
