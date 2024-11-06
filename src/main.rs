@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use alloy::{
-    primitives::Address,
     providers::{Provider, ProviderBuilder, RootProvider, WsConnect},
     pubsub::PubSubFrontend,
     rpc::types::Filter,
@@ -27,26 +26,28 @@ async fn main() {
 }
 
 async fn batch_get_logs_from_db(provider: Arc<RethProvider>) {
-    // let semaphore = Arc::new(tokio::sync::Semaphore::new(50));
-    // let mut tasks = Vec::new();
+    let semaphore = Arc::new(tokio::sync::Semaphore::new(50));
+    let mut tasks = Vec::new();
 
     let latest_block = provider.get_block_number().await.unwrap();
-    println!("Latest block: {}", latest_block);
 
-    for start in (0..latest_block) {
-        provider
-            .get_transaction_count(Address::ZERO)
-            .block_id(start.into())
-            .await
-            .unwrap();
+    for start in (0..latest_block).step_by(20) {
+        let end = start + 20;
+        let provider = provider.clone();
+        let semaphore = semaphore.clone();
 
-        // let _permit = semaphore.clone().acquire_owned().await.unwrap();
-        // let filter = Filter::new().from_block(start).to_block(start);
-        // let logs = provider.get_logs(&filter).await.unwrap();
-        // println!("Got {} logs from block {}", logs.len(), start);
+        let task = tokio::spawn(async move {
+            let _permit = semaphore.clone().acquire_owned().await.unwrap();
+            let filter = Filter::new().from_block(start).to_block(end);
+
+            let logs = provider.get_logs(&filter).await.unwrap();
+            println!("Got {} logs from block {} to {}", logs.len(), start, end);
+        });
+
+        tasks.push(task);
     }
 
-    // for task in tasks {
-    //     task.await.unwrap();
-    // }
+    for task in tasks {
+        task.await.unwrap();
+    }
 }
