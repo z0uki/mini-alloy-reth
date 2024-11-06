@@ -88,21 +88,21 @@ impl<P, T> RethDbProvider<P, T> {
 
                     let num_hash = BlockNumHash::new(header.number, block_hash);
 
-                    if let Some(receipts) = self
-                        .provider
-                        .receipts_by_block(num_hash.hash.into())
-                        .map_err(|_| eyre::eyre!("failed to get receipts for block"))?
-                    {
-                        append_matching_block_logs(
-                            &mut all_logs,
-                            ProviderOrBlock::Provider(&self.provider),
-                            &filter_params,
-                            num_hash,
-                            &receipts,
-                            false,
-                            header.timestamp,
-                        )?;
-                    }
+                    // if let Some(receipts) = self
+                    //     .provider
+                    //     .receipts_by_block(num_hash.hash.into())
+                    //     .map_err(|_| eyre::eyre!("failed to get receipts for block"))?
+                    // {
+                    //     append_matching_block_logs(
+                    //         &mut all_logs,
+                    //         ProviderOrBlock::Provider(&self.provider),
+                    //         &filter_params,
+                    //         num_hash,
+                    //         &receipts,
+                    //         false,
+                    //         header.timestamp,
+                    //     )?;
+                    // }
                 }
             }
         }
