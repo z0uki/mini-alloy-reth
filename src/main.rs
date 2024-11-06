@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use alloy::{
+    primitives::Address,
     providers::{Provider, ProviderBuilder, RootProvider, WsConnect},
     pubsub::PubSubFrontend,
     rpc::types::Filter,
@@ -33,7 +34,11 @@ async fn batch_get_logs_from_db(provider: Arc<RethProvider>) {
     println!("Latest block: {}", latest_block);
 
     for start in (0..latest_block) {
-        provider.get_block_number().await.unwrap();
+        provider
+            .get_transaction_count(Address::ZERO)
+            .block_id(start.into())
+            .await
+            .unwrap();
 
         // let _permit = semaphore.clone().acquire_owned().await.unwrap();
         // let filter = Filter::new().from_block(start).to_block(start);

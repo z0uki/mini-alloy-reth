@@ -3,8 +3,8 @@ use std::{marker::PhantomData, path::PathBuf, sync::Arc};
 use crate::layer::RethDbLayer;
 use alloy::{
     eips::{BlockId, BlockNumberOrTag},
-    primitives::U64,
-    providers::{Provider, ProviderCall, ProviderLayer, RootProvider},
+    primitives::{Address, U64},
+    providers::{Provider, ProviderCall, ProviderLayer, RootProvider, RpcWithBlock},
     rpc::{
         client::NoParams,
         types::{Filter, Log},
@@ -151,6 +151,25 @@ where
             .internal_logs(filter.to_owned())
             .await
             .map_err(|e| TransportErrorKind::custom_str(&e.to_string()))?)
+    }
+
+    fn get_transaction_count(&self, address: Address) -> RpcWithBlock<T, Address, U64, u64> {
+        let this = self.factory().clone();
+        RpcWithBlock::new_provider(move |block_id| {
+            let provider = this
+                .provider_at(block_id)
+                .map_err(TransportErrorKind::custom)
+                .unwrap();
+
+            let maybe_acc = provider
+                .basic_account(address)
+                .map_err(TransportErrorKind::custom)
+                .unwrap();
+
+            let nonce = maybe_acc.map(|acc| acc.nonce).unwrap_or_default();
+
+            ProviderCall::ready(Ok(nonce))
+        })
     }
 }
 
