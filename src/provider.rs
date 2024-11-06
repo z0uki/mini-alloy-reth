@@ -10,17 +10,17 @@ use async_trait::async_trait;
 use reth_beacon_consensus::EthBeaconConsensus;
 use reth_blockchain_tree::noop::NoopBlockchainTree;
 use reth_chain_state::test_utils::TestCanonStateSubscriptions;
-use reth_chainspec::{ChainSpec, ChainSpecBuilder, MAINNET};
+use reth_chainspec::{ChainSpecBuilder, MAINNET};
 use reth_db::{open_db_read_only, DatabaseEnv};
 use reth_network_api::noop::NoopNetwork;
 use reth_node_ethereum::{EthEvmConfig, EthExecutorProvider, EthereumNode};
 use reth_node_types::NodeTypesWithDBAdapter;
 use reth_provider::{
-    providers::{BlockchainProvider, BlockchainProvider2, StaticFileProvider},
-    ChainSpecProvider, ProviderFactory,
+    providers::{BlockchainProvider, StaticFileProvider},
+    ChainSpecProvider, ProviderFactory, ReceiptProvider,
 };
 use reth_rpc::{EthApi, EthFilter};
-use reth_rpc_builder::{EthHandlers, RpcModuleBuilder, RpcRegistryInner};
+use reth_rpc_builder::{EthHandlers, RpcModuleBuilder};
 use reth_rpc_eth_api::filter::EthFilterApiServer;
 use reth_tasks::TokioTaskExecutor;
 use reth_transaction_pool::noop::NoopTransactionPool;
@@ -52,6 +52,7 @@ where
 /// to the database tables and static files.
 pub struct RethDbProvider<P, T> {
     inner: P,
+    pub(crate) provider: RethProvider,
     filter: RethFilter,
     db_path: PathBuf,
     _pd: PhantomData<T>,
@@ -94,6 +95,7 @@ impl<P, T> RethDbProvider<P, T> {
         Self {
             inner,
             db_path,
+            provider,
             filter: registry.eth_handlers().filter.clone(),
             _pd: PhantomData,
         }
@@ -124,9 +126,8 @@ where
 
     async fn get_logs(&self, filter: &Filter) -> TransportResult<Vec<Log>> {
         Ok(self
-            .eth_filter()
-            .logs(filter.to_owned())
+            .internal_logs(filter.to_owned())
             .await
-            .map_err(TransportErrorKind::custom)?)
+            .map_err(|e| TransportErrorKind::custom_str(&e.to_string()))?)
     }
 }
