@@ -33,13 +33,12 @@ async fn batch_get_logs_from_db(provider: Arc<RethProvider>) {
     println!("Latest block: {}", latest_block);
 
     for start in (0..latest_block) {
-        // let _permit = semaphore.clone().acquire_owned().await.unwrap();
-        let filter = Filter::new().from_block(start).to_block(start);
+        provider.get_block_number().await.unwrap();
 
-        {
-            let logs = provider.get_logs(&filter).await.unwrap();
-            println!("Got {} logs from block {}", logs.len(), start);
-        }
+        // let _permit = semaphore.clone().acquire_owned().await.unwrap();
+        // let filter = Filter::new().from_block(start).to_block(start);
+        // let logs = provider.get_logs(&filter).await.unwrap();
+        // println!("Got {} logs from block {}", logs.len(), start);
     }
 
     // for task in tasks {

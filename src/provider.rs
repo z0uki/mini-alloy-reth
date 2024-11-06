@@ -3,8 +3,12 @@ use std::{marker::PhantomData, path::PathBuf, sync::Arc};
 use crate::layer::RethDbLayer;
 use alloy::{
     eips::{BlockId, BlockNumberOrTag},
-    providers::{Provider, ProviderLayer, RootProvider},
-    rpc::types::{Filter, Log},
+    primitives::U64,
+    providers::{Provider, ProviderCall, ProviderLayer, RootProvider},
+    rpc::{
+        client::NoParams,
+        types::{Filter, Log},
+    },
     transports::{Transport, TransportErrorKind, TransportResult},
 };
 use async_trait::async_trait;
@@ -126,6 +130,20 @@ where
 {
     fn root(&self) -> &RootProvider<T> {
         self.inner.root()
+    }
+
+    fn get_block_number(&self) -> ProviderCall<T, NoParams, U64, u64> {
+        let provider = self
+            .factory()
+            .provider()
+            .map_err(TransportErrorKind::custom)
+            .unwrap();
+
+        let best = provider
+            .best_block_number()
+            .map_err(TransportErrorKind::custom);
+
+        ProviderCall::ready(best)
     }
 
     async fn get_logs(&self, filter: &Filter) -> TransportResult<Vec<Log>> {
