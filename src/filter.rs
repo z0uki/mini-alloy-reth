@@ -71,7 +71,7 @@ impl<P, T> RethDbProvider<P, T> {
         // // loop over the range of new blocks and check logs if the filter matches the log's bloom
         // // filter
         for (from, to) in BlockRangeInclusiveIter::new(from_block..=to_block, 1000) {
-            // let headers = self.provider.headers_range(from..=to)?;
+            let headers = self.provider.headers_range(from..=to)?;
 
             // for (idx, header) in headers.iter().enumerate() {
             //     // only if filter matches
