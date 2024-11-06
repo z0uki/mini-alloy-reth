@@ -18,8 +18,8 @@ use reth_node_ethereum::{EthEvmConfig, EthExecutorProvider, EthereumNode};
 use reth_node_types::NodeTypesWithDBAdapter;
 use reth_provider::{
     providers::{BlockchainProvider, StaticFileProvider},
-    BlockNumReader, BlockReader, ChainSpecProvider, DatabaseProviderFactory, ProviderError,
-    ProviderFactory, ReceiptProvider, StateProvider, TryIntoHistoricalStateProvider,
+    BlockNumReader, BlockReader, ChainSpecProvider, DatabaseProviderFactory, HeaderProvider,
+    ProviderError, ProviderFactory, ReceiptProvider, StateProvider, TryIntoHistoricalStateProvider,
 };
 use reth_rpc::{EthApi, EthFilter};
 use reth_rpc_builder::{EthHandlers, RpcModuleBuilder};
@@ -137,10 +137,12 @@ where
     }
 
     async fn get_logs(&self, filter: &Filter) -> TransportResult<Vec<Log>> {
-        Ok(self
-            .internal_logs(filter.to_owned())
-            .await
-            .map_err(|e| TransportErrorKind::custom_str(&e.to_string()))?)
+        let headers = self.factory().provider().unwrap().headers_range(0..=1000);
+        Ok(Vec::new())
+        // Ok(self
+        //     .internal_logs(filter.to_owned())
+        //     .await
+        //     .map_err(|e| TransportErrorKind::custom_str(&e.to_string()))?)
     }
 }
 
