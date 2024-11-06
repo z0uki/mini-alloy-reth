@@ -105,6 +105,8 @@ impl<P, T> RethDbProvider<P, T> {
                     // }
                 }
             }
+
+            drop(headers);
         }
 
         Ok(all_logs)
