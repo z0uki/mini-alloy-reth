@@ -2,6 +2,7 @@ use std::{marker::PhantomData, path::PathBuf, sync::Arc};
 
 use crate::layer::RethDbLayer;
 use alloy::{
+    eips::{BlockId, BlockNumberOrTag},
     providers::{Provider, ProviderLayer, RootProvider},
     rpc::types::{Filter, Log},
     transports::{Transport, TransportErrorKind, TransportResult},
@@ -17,7 +18,8 @@ use reth_node_ethereum::{EthEvmConfig, EthExecutorProvider, EthereumNode};
 use reth_node_types::NodeTypesWithDBAdapter;
 use reth_provider::{
     providers::{BlockchainProvider, StaticFileProvider},
-    ChainSpecProvider, ProviderFactory, ReceiptProvider,
+    BlockNumReader, BlockReader, ChainSpecProvider, DatabaseProviderFactory, ProviderError,
+    ProviderFactory, ReceiptProvider, StateProvider, TryIntoHistoricalStateProvider,
 };
 use reth_rpc::{EthApi, EthFilter};
 use reth_rpc_builder::{EthHandlers, RpcModuleBuilder};
@@ -53,6 +55,7 @@ where
 pub struct RethDbProvider<P, T> {
     inner: P,
     pub(crate) provider: RethProvider,
+    pub(crate) provider_factory: DbAccessor,
     filter: RethFilter,
     db_path: PathBuf,
     _pd: PhantomData<T>,
@@ -92,10 +95,15 @@ impl<P, T> RethDbProvider<P, T> {
         let registry =
             rpc_builder.into_registry(Default::default(), Box::new(EthApi::with_spawner));
 
+        let db_accessor: DbAccessor<
+            ProviderFactory<NodeTypesWithDBAdapter<EthereumNode, Arc<DatabaseEnv>>>,
+        > = DbAccessor::new(provider_factory);
+
         Self {
             inner,
             db_path,
             provider,
+            provider_factory: db_accessor,
             filter: registry.eth_handlers().filter.clone(),
             _pd: PhantomData,
         }
@@ -108,6 +116,10 @@ impl<P, T> RethDbProvider<P, T> {
 
     pub fn eth_filter(&self) -> &EthFilter<RethProvider, RethTxPool, RethApi> {
         &self.filter
+    }
+
+    pub const fn factory(&self) -> &DbAccessor {
+        &self.provider_factory
     }
 }
 
@@ -129,5 +141,44 @@ where
             .internal_logs(filter.to_owned())
             .await
             .map_err(|e| TransportErrorKind::custom_str(&e.to_string()))?)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct DbAccessor<DB = ProviderFactory<NodeTypesWithDBAdapter<EthereumNode, Arc<DatabaseEnv>>>>
+where
+    DB: DatabaseProviderFactory<Provider: TryIntoHistoricalStateProvider + BlockNumReader>,
+{
+    inner: DB,
+}
+
+impl<DB> DbAccessor<DB>
+where
+    DB: DatabaseProviderFactory<Provider: TryIntoHistoricalStateProvider + BlockNumReader>,
+{
+    const fn new(inner: DB) -> Self {
+        Self { inner }
+    }
+
+    pub fn provider(&self) -> Result<DB::Provider, ProviderError> {
+        self.inner.database_provider_ro()
+    }
+
+    fn provider_at(&self, block_id: BlockId) -> Result<Box<dyn StateProvider>, ProviderError> {
+        let provider = self.inner.database_provider_ro()?;
+
+        let block_number = match block_id {
+            BlockId::Hash(hash) => {
+                if let Some(num) = provider.block_number(hash.into())? {
+                    num
+                } else {
+                    return Err(ProviderError::BlockHashNotFound(hash.into()));
+                }
+            }
+            BlockId::Number(BlockNumberOrTag::Number(num)) => num,
+            _ => provider.best_block_number()?,
+        };
+
+        provider.try_into_history_at_block(block_number)
     }
 }
