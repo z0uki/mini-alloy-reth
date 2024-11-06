@@ -71,11 +71,11 @@ impl<P, T> RethDbProvider<P, T> {
             // let headers = provider.headers_range(from..=to)?;
 
             for idx in from..=to {
-                let block = provider
-                    .block_by_number(idx)?
-                    .ok_or_else(|| eyre::eyre!("block not found"))?;
+                let block_hash = provider.block_hash(idx)?.ok_or_eyre("header not found")?;
 
-                let header = block.header;
+                let header = provider
+                    .header(&block_hash)?
+                    .ok_or_else(|| eyre::eyre!("block not found"))?;
 
                 // only if filter matches
                 if FilteredParams::matches_address(header.logs_bloom, &address_filter)
@@ -88,9 +88,6 @@ impl<P, T> RethDbProvider<P, T> {
                     //         .ok_or_eyre("header not found")?,
                     // };
                     //
-                    let block_hash = provider
-                        .block_hash(header.number)?
-                        .ok_or_eyre("header not found")?;
 
                     let num_hash = BlockNumHash::new(header.number, block_hash);
 
