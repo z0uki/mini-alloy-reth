@@ -70,42 +70,42 @@ impl<P, T> RethDbProvider<P, T> {
 
         // // loop over the range of new blocks and check logs if the filter matches the log's bloom
         // // filter
-        // for (from, to) in BlockRangeInclusiveIter::new(from_block..=to_block, 1000) {
-        //     let headers = self.provider.headers_range(from..=to)?;
+        for (from, to) in BlockRangeInclusiveIter::new(from_block..=to_block, 1000) {
+            // let headers = self.provider.headers_range(from..=to)?;
 
-        //     for (idx, header) in headers.iter().enumerate() {
-        //         // only if filter matches
-        //         if FilteredParams::matches_address(header.logs_bloom, &address_filter)
-        //             && FilteredParams::matches_topics(header.logs_bloom, &topics_filter)
-        //         {
-        //             let block_hash = match headers.get(idx + 1) {
-        //                 Some(parent) => parent.parent_hash,
-        //                 None => self
-        //                     .provider
-        //                     .block_hash(header.number)?
-        //                     .ok_or_eyre("header not found")?,
-        //             };
+            // for (idx, header) in headers.iter().enumerate() {
+            //     // only if filter matches
+            //     if FilteredParams::matches_address(header.logs_bloom, &address_filter)
+            //         && FilteredParams::matches_topics(header.logs_bloom, &topics_filter)
+            //     {
+            //         let block_hash = match headers.get(idx + 1) {
+            //             Some(parent) => parent.parent_hash,
+            //             None => self
+            //                 .provider
+            //                 .block_hash(header.number)?
+            //                 .ok_or_eyre("header not found")?,
+            //         };
 
-        //             let num_hash = BlockNumHash::new(header.number, block_hash);
+            //         let num_hash = BlockNumHash::new(header.number, block_hash);
 
-        //             // if let Some(receipts) = self
-        //             //     .provider
-        //             //     .receipts_by_block(num_hash.hash.into())
-        //             //     .map_err(|_| eyre::eyre!("failed to get receipts for block"))?
-        //             // {
-        //             //     append_matching_block_logs(
-        //             //         &mut all_logs,
-        //             //         ProviderOrBlock::Provider(&self.provider),
-        //             //         &filter_params,
-        //             //         num_hash,
-        //             //         &receipts,
-        //             //         false,
-        //             //         header.timestamp,
-        //             //     )?;
-        //             // }
-        //         }
-        //     }
-        // }
+            //         // if let Some(receipts) = self
+            //         //     .provider
+            //         //     .receipts_by_block(num_hash.hash.into())
+            //         //     .map_err(|_| eyre::eyre!("failed to get receipts for block"))?
+            //         // {
+            //         //     append_matching_block_logs(
+            //         //         &mut all_logs,
+            //         //         ProviderOrBlock::Provider(&self.provider),
+            //         //         &filter_params,
+            //         //         num_hash,
+            //         //         &receipts,
+            //         //         false,
+            //         //         header.timestamp,
+            //         //     )?;
+            //         // }
+            //     }
+            // }
+        }
 
         Ok(all_logs)
     }
