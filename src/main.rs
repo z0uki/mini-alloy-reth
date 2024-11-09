@@ -66,4 +66,5 @@ async fn batch_get_logs_from_db(provider: Arc<RethProvider>) {
 
     set_prof_active(false);
     dump_profile();
+    println!("test done");
 }
