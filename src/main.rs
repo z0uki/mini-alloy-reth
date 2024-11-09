@@ -51,7 +51,7 @@ async fn batch_get_logs_from_db(provider: Arc<RethProvider>) {
 
     set_prof_active(true);
 
-    let tasks = (0..5000000).step_by(10).map(|start| {
+    let tasks = (0..10000000).step_by(10).map(|start| {
         let provider = provider.clone();
         tokio::spawn(async move {
             let end = start + 10;
