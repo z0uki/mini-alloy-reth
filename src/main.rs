@@ -12,23 +12,23 @@ use mini_alloy_reth::{layer::RethDbLayer, provider::RethDbProvider};
 
 type RethProvider = RethDbProvider<RootProvider<PubSubFrontend>, PubSubFrontend>;
 
-// #[global_allocator]
-// static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+#[global_allocator]
+static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
 
-// const PROF_ACTIVE: &'static [u8] = b"prof.active\0";
-// const PROF_DUMP: &'static [u8] = b"prof.dump\0";
-// const PROFILE_OUTPUT: &'static [u8] = b"profile.out\0";
+const PROF_ACTIVE: &'static [u8] = b"prof.active\0";
+const PROF_DUMP: &'static [u8] = b"prof.dump\0";
+const PROFILE_OUTPUT: &'static [u8] = b"profile.out\0";
 
-// fn set_prof_active(active: bool) {
-//     let name = PROF_ACTIVE.name();
-//     name.write(active).expect("Should succeed to set prof");
-// }
+fn set_prof_active(active: bool) {
+    let name = PROF_ACTIVE.name();
+    name.write(active).expect("Should succeed to set prof");
+}
 
-// fn dump_profile() {
-//     let name = PROF_DUMP.name();
-//     name.write(PROFILE_OUTPUT)
-//         .expect("Should succeed to dump profile")
-// }
+fn dump_profile() {
+    let name = PROF_DUMP.name();
+    name.write(PROFILE_OUTPUT)
+        .expect("Should succeed to dump profile")
+}
 
 #[tokio::main]
 async fn main() {
@@ -49,9 +49,10 @@ async fn main() {
 async fn batch_get_logs_from_db(provider: Arc<RethProvider>) {
     let latest_block = provider.get_block_number().await.unwrap();
 
-    // set_prof_active(true);
+    set_prof_active(true);
 
-    let tasks = (0..10000000).step_by(10).map(|start| {
+    let now = std::time::Instant::now();
+    let tasks = (0..latest_block).step_by(10).map(|start| {
         let provider = provider.clone();
         tokio::spawn(async move {
             let end = start + 10;
@@ -64,7 +65,7 @@ async fn batch_get_logs_from_db(provider: Arc<RethProvider>) {
 
     while stream.next().await.is_some() {}
 
-    // set_prof_active(false);
-    // dump_profile();
-    // println!("test done");
+    set_prof_active(false);
+    dump_profile();
+    println!("test took {:?}", now.elapsed());
 }
