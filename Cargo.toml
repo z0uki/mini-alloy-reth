@@ -29,3 +29,16 @@ reth-rpc-builder = { git = "https://github.com/paradigmxyz/reth", package = "ret
 reth-chain-state = { git = "https://github.com/paradigmxyz/reth", package = "reth-chain-state", version = "1.1.1", tag = "v1.1.1", features = [
     "test-utils",
 ] }
+
+futures-ratelimit = "1.0.1"
+futures = "0.3.27"
+
+jemallocator = "0.3.2"
+jemalloc-ctl = "0.3.2"
+
+[dependencies.jemalloc-sys]
+version = "0.3.2"
+features = ["stats", "profiling", "unprefixed_malloc_on_supported_platforms"]
+
+[profile.release]
+debug = true

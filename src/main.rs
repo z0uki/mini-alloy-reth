@@ -5,9 +5,30 @@ use alloy::{
     pubsub::PubSubFrontend,
     rpc::types::Filter,
 };
+use futures::StreamExt;
+use futures_ratelimit::ordered::FuturesOrderedIter;
+use jemalloc_ctl::{Access, AsName};
 use mini_alloy_reth::{layer::RethDbLayer, provider::RethDbProvider};
 
 type RethProvider = RethDbProvider<RootProvider<PubSubFrontend>, PubSubFrontend>;
+
+#[global_allocator]
+static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+
+const PROF_ACTIVE: &'static [u8] = b"prof.active\0";
+const PROF_DUMP: &'static [u8] = b"prof.dump\0";
+const PROFILE_OUTPUT: &'static [u8] = b"profile.out\0";
+
+fn set_prof_active(active: bool) {
+    let name = PROF_ACTIVE.name();
+    name.write(active).expect("Should succeed to set prof");
+}
+
+fn dump_profile() {
+    let name = PROF_DUMP.name();
+    name.write(PROFILE_OUTPUT)
+        .expect("Should succeed to dump profile")
+}
 
 #[tokio::main]
 async fn main() {
@@ -26,28 +47,23 @@ async fn main() {
 }
 
 async fn batch_get_logs_from_db(provider: Arc<RethProvider>) {
-    let semaphore = Arc::new(tokio::sync::Semaphore::new(50));
-    let mut tasks = Vec::new();
-
     let latest_block = provider.get_block_number().await.unwrap();
 
-    for start in (0..latest_block).step_by(20) {
-        let end = start + 20;
+    set_prof_active(true);
+
+    let tasks = (21000000..latest_block).step_by(10).map(|start| {
         let provider = provider.clone();
-        let semaphore = semaphore.clone();
-
-        let task = tokio::spawn(async move {
-            let _permit = semaphore.clone().acquire_owned().await.unwrap();
+        tokio::spawn(async move {
+            let end = start + 10;
             let filter = Filter::new().from_block(start).to_block(end);
+            provider.get_logs(&filter).await.unwrap();
+        })
+    });
 
-            let logs = provider.get_logs(&filter).await.unwrap();
-            println!("Got {} logs from block {} to {}", logs.len(), start, end);
-        });
+    let mut stream = FuturesOrderedIter::new(100, tasks);
 
-        tasks.push(task);
-    }
+    while stream.next().await.is_some() {}
 
-    for task in tasks {
-        task.await.unwrap();
-    }
+    set_prof_active(false);
+    dump_profile();
 }
