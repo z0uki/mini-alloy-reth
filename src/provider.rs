@@ -89,11 +89,7 @@ impl<P, T> RethDbProvider<P, T> {
         let task_manager = TaskManager::new(handle.clone());
         let task_executor = task_manager.executor();
 
-        let args = DatabaseArguments::default()
-            .with_max_read_transaction_duration(Some(MaxReadTransactionDuration::Set(
-                Duration::from_secs(10),
-            )))
-            .with_exclusive(Some(false));
+        let args = DatabaseArguments::default();
 
         let db = Arc::new(open_db_read_only(db_path.join("db").as_path(), args).unwrap());
 
