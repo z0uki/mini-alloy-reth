@@ -30,7 +30,7 @@ use reth_rpc_eth_types::{
     GasPriceOracle, GasPriceOracleConfig,
 };
 use reth_rpc_server_types::constants::{DEFAULT_ETH_PROOF_WINDOW, DEFAULT_PROOF_PERMITS};
-use reth_tasks::{pool::BlockingTaskPool, TokioTaskExecutor};
+use reth_tasks::{pool::BlockingTaskPool, TaskManager, TokioTaskExecutor};
 use reth_transaction_pool::{
     blobstore::NoopBlobStore, validate::EthTransactionValidatorBuilder, CoinbaseTipOrdering,
     EthPooledTransaction, EthTransactionValidator, Pool, TransactionValidationTaskExecutor,
@@ -64,7 +64,7 @@ where
     type Provider = RethDbProvider<P, T>;
 
     fn layer(&self, inner: P) -> Self::Provider {
-        RethDbProvider::new(inner, self.db_path().clone())
+        RethDbProvider::new(inner, self.db_path().clone(), self.handle())
     }
 }
 
@@ -85,7 +85,10 @@ pub struct RethDbProvider<P, T> {
 
 impl<P, T> RethDbProvider<P, T> {
     /// Create a new `RethDbProvider` instance.
-    pub fn new(inner: P, db_path: PathBuf) -> Self {
+    pub fn new(inner: P, db_path: PathBuf, handle: &tokio::runtime::Handle) -> Self {
+        let task_manager = TaskManager::new(handle.clone());
+        let task_executor = task_manager.executor();
+
         let args = DatabaseArguments::default()
             .with_max_read_transaction_duration(Some(MaxReadTransactionDuration::Set(
                 Duration::from_secs(10),
@@ -93,7 +96,6 @@ impl<P, T> RethDbProvider<P, T> {
             .with_exclusive(Some(false));
 
         let db = Arc::new(open_db_read_only(db_path.join("db").as_path(), args).unwrap());
-        let task_executor = TokioTaskExecutor::default();
 
         let chain = MAINNET.clone();
         let evm_config = EthEvmConfig::new(chain.clone());
@@ -103,8 +105,10 @@ impl<P, T> RethDbProvider<P, T> {
             StaticFileProvider::read_only(db_path.join("static_files"), true).unwrap(),
         );
 
-        // let provider =
-        // provider_factory.provider().map_err(TransportErrorKind::custom).unwrap();
+        // let provider = provider_factory
+        //     .provider()
+        //     .map_err(TransportErrorKind::custom)
+        //     .unwrap();
 
         let tree_externals = TreeExternals::new(
             provider_factory.clone(),

@@ -30,20 +30,23 @@ fn dump_profile() {
         .expect("Should succeed to dump profile")
 }
 
-#[tokio::main]
-async fn main() {
-    let ws = WsConnect::new("ws://localhost:8545");
-    let db_path = "/root/.local/share/reth/mainnet".into();
+fn main() {
+    let mut rt = tokio::runtime::Runtime::new().unwrap();
+    let handle = rt.handle();
+    rt.block_on(async {
+        let ws = WsConnect::new("ws://localhost:8545");
+        let db_path = "/root/.local/share/reth/mainnet".into();
 
-    let provider = Arc::new(
-        ProviderBuilder::new()
-            .layer(RethDbLayer::new(db_path))
-            .on_ws(ws)
-            .await
-            .unwrap(),
-    );
+        let provider = Arc::new(
+            ProviderBuilder::new()
+                .layer(RethDbLayer::new(db_path, handle))
+                .on_ws(ws)
+                .await
+                .unwrap(),
+        );
 
-    batch_get_logs_from_db(provider).await;
+        batch_get_logs_from_db(provider).await;
+    })
 }
 
 async fn batch_get_logs_from_db(provider: Arc<RethProvider>) {
@@ -54,6 +57,8 @@ async fn batch_get_logs_from_db(provider: Arc<RethProvider>) {
             tokio::time::sleep(std::time::Duration::from_secs(6)).await;
             continue;
         }
+
+        println!("Syncing from block {}", synced);
 
         let filter = Filter::new()
             .from_block(latest_block)

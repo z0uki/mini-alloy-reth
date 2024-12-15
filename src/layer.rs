@@ -6,15 +6,20 @@ use std::path::PathBuf;
 /// `RethDbProvider`.
 pub struct RethDbLayer {
     db_path: PathBuf,
+    handle: tokio::runtime::Handle,
 }
 
 /// Initialize the `RethDBLayer` with the path to the reth datadir.
 impl RethDbLayer {
-    pub const fn new(db_path: PathBuf) -> Self {
-        Self { db_path }
+    pub const fn new(db_path: PathBuf, handle: tokio::runtime::Handle) -> Self {
+        Self { db_path, handle }
     }
 
     pub const fn db_path(&self) -> &PathBuf {
         &self.db_path
+    }
+
+    pub const fn handle(&self) -> &tokio::runtime::Handle {
+        &self.handle
     }
 }
