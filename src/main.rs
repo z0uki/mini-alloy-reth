@@ -47,12 +47,20 @@ async fn main() {
 }
 
 async fn batch_get_logs_from_db(provider: Arc<RethProvider>) {
-    for _ in 0..10 {
+    let mut synced = 0;
+    loop {
         let latest_block = provider.get_block_number().await.unwrap();
+        if latest_block == synced {
+            tokio::time::sleep(std::time::Duration::from_secs(6)).await;
+            continue;
+        }
+
         let filter = Filter::new()
             .from_block(latest_block)
             .to_block(latest_block);
         let logs = provider.get_logs(&filter).await.unwrap();
         println!("Got {} logs", logs.len());
+
+        synced = latest_block;
     }
 }
