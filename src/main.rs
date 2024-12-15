@@ -56,7 +56,7 @@ async fn batch_get_logs_from_db(provider: Arc<RethProvider>) {
         }
 
         let receipts = provider
-            .get_block_receipts(latest_block.into())
+            .get_block_receipts((latest_block - 1).into())
             .await
             .unwrap();
 
