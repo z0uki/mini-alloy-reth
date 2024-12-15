@@ -55,11 +55,12 @@ async fn batch_get_logs_from_db(provider: Arc<RethProvider>) {
             continue;
         }
 
-        let filter = Filter::new()
-            .from_block(latest_block)
-            .to_block(latest_block);
-        let logs = provider.get_logs(&filter).await.unwrap();
-        println!("Got {} logs", logs.len());
+        let receipts = provider
+            .get_block_receipts(latest_block.into())
+            .await
+            .unwrap();
+
+        println!("Got {:?}", receipts.map(|x| x.len()));
 
         synced = latest_block;
     }
