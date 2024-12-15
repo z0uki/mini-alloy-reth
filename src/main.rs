@@ -53,12 +53,11 @@ async fn batch_get_logs_from_db(provider: Arc<RethProvider>) {
     let mut synced = 0;
     loop {
         let latest_block = provider.get_block_number().await.unwrap();
+        println!("Syncing from block {}", synced);
         if latest_block == synced {
             tokio::time::sleep(std::time::Duration::from_secs(6)).await;
             continue;
         }
-
-        println!("Syncing from block {}", synced);
 
         let filter = Filter::new()
             .from_block(latest_block)
