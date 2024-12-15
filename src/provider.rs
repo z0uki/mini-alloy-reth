@@ -87,8 +87,7 @@ pub struct RethDbProvider<P, T> {
 impl<P, T> RethDbProvider<P, T> {
     /// Create a new `RethDbProvider` instance.
     pub fn new(inner: P, db_path: PathBuf, handle: &tokio::runtime::Handle) -> Self {
-        let task_manager = TaskManager::new(handle.clone());
-        let task_executor = task_manager.executor();
+        let task_executor = TokioTaskExecutor::default();
 
         let args = DatabaseArguments::default();
 
