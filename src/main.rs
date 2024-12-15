@@ -39,7 +39,7 @@ fn main() {
 
         let provider = Arc::new(
             ProviderBuilder::new()
-                .layer(RethDbLayer::new(db_path, handle))
+                .layer(RethDbLayer::new(db_path, handle.clone()))
                 .on_ws(ws)
                 .await
                 .unwrap(),
