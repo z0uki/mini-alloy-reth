@@ -11,6 +11,7 @@ use reth_beacon_consensus::EthBeaconConsensus;
 use reth_blockchain_tree::{
     BlockchainTree, BlockchainTreeConfig, ShareableBlockchainTree, TreeExternals,
 };
+use reth_chain_state::test_utils::TestCanonStateSubscriptions;
 use reth_chainspec::MAINNET;
 use reth_db::{
     mdbx::{DatabaseArguments, MaxReadTransactionDuration},
@@ -26,8 +27,8 @@ use reth_provider::{
 use reth_rpc::{eth::EthTxBuilder, EthApi, EthFilter};
 use reth_rpc_eth_api::{helpers::EthBlocks, EthFilterApiServer};
 use reth_rpc_eth_types::{
-    EthFilterConfig, EthStateCache, EthStateCacheConfig, FeeHistoryCache, FeeHistoryCacheConfig,
-    GasPriceOracle, GasPriceOracleConfig,
+    EthApiBuilderCtx, EthConfig, EthFilterConfig, EthStateCache, EthStateCacheConfig,
+    FeeHistoryCache, FeeHistoryCacheConfig, GasPriceOracle, GasPriceOracleConfig,
 };
 use reth_rpc_server_types::constants::{DEFAULT_ETH_PROOF_WINDOW, DEFAULT_PROOF_PERMITS};
 use reth_tasks::{pool::BlockingTaskPool, TaskManager, TokioTaskExecutor};
@@ -152,24 +153,18 @@ impl<P, T> RethDbProvider<P, T> {
             FeeHistoryCacheConfig::default(),
         );
 
-        let api = EthApi::new(
-            provider.clone(),
-            tx_pool.clone(),
-            NoopNetwork::default(),
-            state_cache.clone(),
-            GasPriceOracle::new(
-                provider.clone(),
-                GasPriceOracleConfig::default(),
-                state_cache.clone(),
-            ),
-            ETHEREUM_BLOCK_GAS_LIMIT,
-            MAX_SIMULATE_BLOCKS,
-            DEFAULT_ETH_PROOF_WINDOW,
-            blocking,
-            fee_history,
-            evm_config.clone(),
-            DEFAULT_PROOF_PERMITS,
-        );
+        let ctx = EthApiBuilderCtx {
+            provider: provider.clone(),
+            pool: tx_pool.clone(),
+            network: NoopNetwork::default(),
+            evm_config,
+            config: EthConfig::default(),
+            executor: task_executor.clone(),
+            events: TestCanonStateSubscriptions::default(),
+            cache: state_cache.clone(),
+        };
+
+        let api = EthApi::with_spawner(&ctx);
 
         // let blocking_task_guard = BlockingTaskGuard::new(10000);
         // let provider_executor = EthExecutorProvider::ethereum(chain.clone());
