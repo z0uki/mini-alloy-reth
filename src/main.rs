@@ -47,25 +47,12 @@ async fn main() {
 }
 
 async fn batch_get_logs_from_db(provider: Arc<RethProvider>) {
-    let latest_block = provider.get_block_number().await.unwrap();
-
-    set_prof_active(true);
-
-    let now = std::time::Instant::now();
-    let tasks = (0..latest_block).step_by(10).map(|start| {
-        let provider = provider.clone();
-        tokio::spawn(async move {
-            let end = start + 10;
-            let filter = Filter::new().from_block(start).to_block(end);
-            provider.get_logs(&filter).await.unwrap();
-        })
-    });
-
-    let mut stream = FuturesOrderedIter::new(100, tasks);
-
-    while stream.next().await.is_some() {}
-
-    set_prof_active(false);
-    dump_profile();
-    println!("test took {:?}", now.elapsed());
+    for _ in 0..10 {
+        let latest_block = provider.get_block_number().await.unwrap();
+        let filter = Filter::new()
+            .from_block(latest_block)
+            .to_block(latest_block);
+        let logs = provider.get_logs(&filter).await.unwrap();
+        println!("Got {} logs", logs.len());
+    }
 }
