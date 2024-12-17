@@ -87,7 +87,10 @@ pub struct RethDbProvider<P, T> {
 impl<P, T> RethDbProvider<P, T> {
     /// Create a new `RethDbProvider` instance.
     pub fn new(inner: P, db_path: PathBuf, handle: &tokio::runtime::Handle) -> Self {
-        let task_executor = TokioTaskExecutor::default();
+        let task_manager = TaskManager::new(handle.clone());
+        let task_executor = task_manager.executor();
+
+        handle.spawn(task_manager);
 
         let args = DatabaseArguments::default();
 
@@ -166,13 +169,6 @@ impl<P, T> RethDbProvider<P, T> {
             DEFAULT_PROOF_PERMITS,
         );
 
-        // let blocking_task_guard = BlockingTaskGuard::new(10000);
-        // let provider_executor = EthExecutorProvider::ethereum(chain.clone());
-
-        // let trace = TraceApi::new(provider.clone(), api.clone(),
-        // blocking_task_guard.clone()); let debug =
-        // DebugApi::new(provider.clone(), api.clone(), blocking_task_guard,
-        // provider_executor);
         let filter = EthFilter::new(
             provider.clone(),
             tx_pool.clone(),
