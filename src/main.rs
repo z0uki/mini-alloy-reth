@@ -44,7 +44,7 @@ fn main() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     let handle = rt.handle();
     rt.block_on(async {
-        tracing_subscriber::fmt().with_env_filter("trace").init();
+        tracing_subscriber::fmt().with_env_filter("info").init();
         let ws = WsConnect::new("ws://localhost:8545");
         let db_path = "/root/.local/share/reth/mainnet".into();
 
@@ -69,10 +69,7 @@ async fn batch_get_logs_from_db(provider: Arc<RethProvider>) {
             tokio::time::sleep(std::time::Duration::from_secs(6)).await;
             continue;
         }
-        let receipts = provider
-            .get_block_receipts(latest_block.into())
-            .await
-            .unwrap();
+        let receipts = provider.get_block_receipts(21421398.into()).await.unwrap();
 
         println!("Got {:?}", receipts.map(|x| x.len()));
 

@@ -22,7 +22,7 @@ use reth_node_ethereum::{EthEvmConfig, EthExecutorProvider, EthereumNode};
 use reth_node_types::NodeTypesWithDBAdapter;
 use reth_provider::{
     providers::{BlockchainProvider, StaticFileProvider},
-    ProviderFactory, ReceiptProvider,
+    ProviderFactory, ReceiptProvider, StateProviderFactory, StaticFileProviderFactory,
 };
 use reth_rpc::{eth::EthTxBuilder, EthApi, EthFilter};
 use reth_rpc_eth_api::{helpers::EthBlocks, EthFilterApiServer};
