@@ -74,7 +74,7 @@ async fn batch_get_logs_from_db(provider: Arc<RethProvider>) {
         );
     }
 
-    tokio::time::sleep(std::time::Duration::from_secs(12)).await;
+    tokio::time::sleep(std::time::Duration::from_secs(36)).await;
 
     let receipts = provider
         .get_block_receipts(latest_block.into())
