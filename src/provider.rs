@@ -240,11 +240,6 @@ where
             {
                 Ok(result) => {
                     if let Some(receipts) = result {
-                        tracing::info!(
-                            "Receipts found for block: {:?} len: {}",
-                            block,
-                            receipts.len()
-                        );
                         Ok(Some(receipts))
                     } else {
                         tracing::warn!("No receipts found for block: {:?}", block);
