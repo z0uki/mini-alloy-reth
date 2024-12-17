@@ -36,6 +36,9 @@ futures = "0.3.27"
 jemallocator = "0.3.2"
 jemalloc-ctl = "0.3.2"
 
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+tracing = "0.1.40"
+
 [dependencies.jemalloc-sys]
 version = "0.3.2"
 features = ["stats", "profiling", "unprefixed_malloc_on_supported_platforms"]
