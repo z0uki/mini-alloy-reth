@@ -61,18 +61,30 @@ fn main() {
 }
 
 async fn batch_get_logs_from_db(provider: Arc<RethProvider>) {
-    let mut synced = 0;
-    loop {
-        let latest_block = provider.get_block_number().await.unwrap();
-        println!("Syncing from block {}", latest_block);
-        if latest_block == synced {
-            tokio::time::sleep(std::time::Duration::from_secs(6)).await;
-            continue;
-        }
-        let receipts = provider.get_block_receipts(21421398.into()).await.unwrap();
+    let latest_block = provider.get_block_number().await.unwrap();
 
-        println!("Got {:?}", receipts.map(|x| x.len()));
+    for number in (latest_block - 500)..latest_block {
+        let receipts = provider.get_block_receipts(number.into()).await.unwrap();
 
-        synced = latest_block;
+        println!(
+            "block: {} distance: {} receipts: {:?}",
+            number,
+            latest_block - number,
+            receipts.map(|x| x.len())
+        );
     }
+
+    // loop {
+    //     let latest_block = provider.get_block_number().await.unwrap();
+    //     println!("Syncing from block {}", latest_block);
+    //     if latest_block == synced {
+    //         tokio::time::sleep(std::time::Duration::from_secs(6)).await;
+    //         continue;
+    //     }
+    //     let receipts = provider.get_block_receipts(21421398.into()).await.unwrap();
+
+    //     println!("Got {:?}", receipts.map(|x| x.len()));
+
+    //     synced = latest_block;
+    // }
 }
