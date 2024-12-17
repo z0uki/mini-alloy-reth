@@ -63,7 +63,7 @@ fn main() {
 async fn batch_get_logs_from_db(provider: Arc<RethProvider>) {
     let latest_block = provider.get_block_number().await.unwrap();
 
-    for number in (latest_block - 500)..latest_block {
+    for number in (latest_block - 10)..latest_block {
         let receipts = provider.get_block_receipts(number.into()).await.unwrap();
 
         println!(
@@ -73,6 +73,15 @@ async fn batch_get_logs_from_db(provider: Arc<RethProvider>) {
             receipts.map(|x| x.len())
         );
     }
+
+    tokio::time::sleep(std::time::Duration::from_secs(12)).await;
+
+    let receipts = provider
+        .get_block_receipts(latest_block.into())
+        .await
+        .unwrap();
+
+    println!("block: {} receipts: {:?}", latest_block, receipts);
 
     // loop {
     //     let latest_block = provider.get_block_number().await.unwrap();
