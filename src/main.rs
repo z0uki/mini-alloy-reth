@@ -44,6 +44,7 @@ fn main() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     let handle = rt.handle();
     rt.block_on(async {
+        tracing_subscriber::fmt().with_env_filter("trace").init();
         let ws = WsConnect::new("ws://localhost:8545");
         let db_path = "/root/.local/share/reth/mainnet".into();
 
@@ -63,7 +64,7 @@ async fn batch_get_logs_from_db(provider: Arc<RethProvider>) {
     let mut synced = 0;
     loop {
         let latest_block = provider.get_block_number().await.unwrap();
-        println!("Syncing from block {}", synced);
+        println!("Syncing from block {}", latest_block);
         if latest_block == synced {
             tokio::time::sleep(std::time::Duration::from_secs(6)).await;
             continue;
