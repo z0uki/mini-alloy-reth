@@ -1,4 +1,7 @@
-use std::sync::Arc;
+use std::{
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use alloy::{
     providers::{Provider, ProviderBuilder, RootProvider, WsConnect},
@@ -9,6 +12,13 @@ use futures::StreamExt;
 use futures_ratelimit::ordered::FuturesOrderedIter;
 use jemalloc_ctl::{Access, AsName};
 use mini_alloy_reth::{layer::RethDbLayer, provider::RethDbProvider};
+use reth_chainspec::MAINNET;
+use reth_db::{mdbx::DatabaseArguments, open_db_read_only, DatabaseEnv};
+use reth_node_ethereum::{EthEvmConfig, EthereumNode};
+use reth_node_types::NodeTypesWithDBAdapter;
+use reth_provider::{
+    providers::StaticFileProvider, BlockNumReader, ProviderFactory, ReceiptProvider,
+};
 
 type RethProvider = RethDbProvider<RootProvider<PubSubFrontend>, PubSubFrontend>;
 
@@ -30,23 +40,49 @@ fn dump_profile() {
         .expect("Should succeed to dump profile")
 }
 
-fn main() {
-    let mut rt = tokio::runtime::Runtime::new().unwrap();
-    let handle = rt.handle();
-    rt.block_on(async {
-        let ws = WsConnect::new("ws://localhost:8545");
-        let db_path = "/root/.local/share/reth/mainnet".into();
+#[tokio::main]
+async fn main() {
+    let db_path: PathBuf = "/root/.local/share/reth/mainnet".into();
+    let db = Arc::new(
+        open_db_read_only(db_path.join("db").as_path(), DatabaseArguments::default()).unwrap(),
+    );
 
-        let provider = Arc::new(
-            ProviderBuilder::new()
-                .layer(RethDbLayer::new(db_path, handle.clone()))
-                .on_ws(ws)
-                .await
-                .unwrap(),
+    let chain = MAINNET.clone();
+    let evm_config = EthEvmConfig::new(chain.clone());
+    let provider_factory =
+        ProviderFactory::<NodeTypesWithDBAdapter<EthereumNode, Arc<DatabaseEnv>>>::new(
+            Arc::clone(&db),
+            Arc::clone(&chain),
+            StaticFileProvider::read_only(db_path.join("static_files"), true).unwrap(),
         );
 
-        batch_get_logs_from_db(provider).await;
-    })
+    let provider = provider_factory.provider().unwrap();
+
+    loop {
+        let number = provider.best_block_number().unwrap();
+
+        let receipts = provider.receipts_by_block(number.into()).unwrap();
+
+        println!("block: {} receipts:{:?}", number, receipts.map(|x| x.len()));
+        tokio::time::sleep(std::time::Duration::from_secs(6)).await;
+    }
+
+    // let mut rt = tokio::runtime::Runtime::new().unwrap();
+    // let handle = rt.handle();
+    // rt.block_on(async {
+    //     let ws = WsConnect::new("ws://localhost:8545");
+    //     let db_path = "/root/.local/share/reth/mainnet".into();
+
+    //     let provider = Arc::new(
+    //         ProviderBuilder::new()
+    //             .layer(RethDbLayer::new(db_path, handle.clone()))
+    //             .on_ws(ws)
+    //             .await
+    //             .unwrap(),
+    //     );
+
+    //     batch_get_logs_from_db(provider).await;
+    // })
 }
 
 async fn batch_get_logs_from_db(provider: Arc<RethProvider>) {

@@ -22,7 +22,7 @@ use reth_node_ethereum::{EthEvmConfig, EthExecutorProvider, EthereumNode};
 use reth_node_types::NodeTypesWithDBAdapter;
 use reth_provider::{
     providers::{BlockchainProvider, StaticFileProvider},
-    ProviderFactory,
+    ProviderFactory, ReceiptProvider,
 };
 use reth_rpc::{eth::EthTxBuilder, EthApi, EthFilter};
 use reth_rpc_eth_api::{helpers::EthBlocks, EthFilterApiServer};
@@ -100,11 +100,6 @@ impl<P, T> RethDbProvider<P, T> {
             Arc::clone(&chain),
             StaticFileProvider::read_only(db_path.join("static_files"), true).unwrap(),
         );
-
-        // let provider = provider_factory
-        //     .provider()
-        //     .map_err(TransportErrorKind::custom)
-        //     .unwrap();
 
         let tree_externals = TreeExternals::new(
             provider_factory.clone(),
