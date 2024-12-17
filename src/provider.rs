@@ -231,10 +231,23 @@ where
         block: BlockId,
     ) -> ProviderCall<T, (BlockId,), Option<Vec<TransactionReceipt>>> {
         let api = self.api.clone();
+        let root = self.root().clone();
         ProviderCall::BoxedFuture(Box::pin(async move {
-            api.block_receipts(block)
+            match api
+                .block_receipts(block)
                 .await
                 .map_err(TransportErrorKind::custom)
+            {
+                Ok(result) => {
+                    if let Some(receipts) = result {
+                        Ok(Some(receipts))
+                    } else {
+                        tracing::warn!("No receipts found for block: {:?}", block);
+                        root.get_block_receipts(block).await
+                    }
+                }
+                Err(e) => return Err(e),
+            }
         }))
     }
 }
