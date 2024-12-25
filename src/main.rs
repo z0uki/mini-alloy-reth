@@ -78,12 +78,11 @@ async fn batch_get_logs_from_db(provider: Arc<RethProvider>) {
     let jared = address!("ae2Fc483527B8EF99EB5D9B44875F005ba1FaE13");
     loop {
         let latest_block = provider.get_block_number().await.unwrap();
-        let jared_nonce = provider
-            .get_transaction_count(jared)
-            .block_id(latest_block.into())
-            .await
-            .unwrap();
-        println!("block: {} nonce: {}", latest_block, jared_nonce);
+        let now = std::time::Instant::now();
+        for _ in 0..1000 {
+            let jared_nonce = provider.get_transaction_count(jared).await.unwrap();
+        }
+        println!("1000 queries took: {:?}ms", now.elapsed().as_millis());
 
         tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
     }
