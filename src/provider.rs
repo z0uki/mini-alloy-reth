@@ -1,17 +1,17 @@
 use std::{marker::PhantomData, path::PathBuf, sync::Arc, time::Duration};
 
 use alloy::{
-    eips::{eip1559::ETHEREUM_BLOCK_GAS_LIMIT, BlockId},
-    providers::{Provider, ProviderCall, ProviderLayer, RootProvider},
-    rpc::types::{simulate::MAX_SIMULATE_BLOCKS, Filter, Log, TransactionReceipt},
-    transports::{Transport, TransportErrorKind, TransportResult},
+    eips::{eip1559::ETHEREUM_BLOCK_GAS_LIMIT, BlockId, BlockNumberOrTag},
+    primitives::{Address, U64},
+    providers::{Provider, ProviderCall, ProviderLayer, RootProvider, RpcWithBlock},
+    rpc::types::{simulate::MAX_SIMULATE_BLOCKS, TransactionReceipt},
+    transports::{Transport, TransportErrorKind},
 };
 use async_trait::async_trait;
 use reth_beacon_consensus::EthBeaconConsensus;
 use reth_blockchain_tree::{
     BlockchainTree, BlockchainTreeConfig, ShareableBlockchainTree, TreeExternals,
 };
-use reth_chain_state::test_utils::TestCanonStateSubscriptions;
 use reth_chainspec::MAINNET;
 use reth_db::{
     mdbx::{DatabaseArguments, MaxReadTransactionDuration},
@@ -22,16 +22,17 @@ use reth_node_ethereum::{EthEvmConfig, EthExecutorProvider, EthereumNode};
 use reth_node_types::NodeTypesWithDBAdapter;
 use reth_provider::{
     providers::{BlockchainProvider, StaticFileProvider},
-    ProviderFactory, ReceiptProvider, StateProviderFactory, StaticFileProviderFactory,
+    BlockNumReader, DatabaseProviderFactory, ProviderError, ProviderFactory, StateProvider,
+    TryIntoHistoricalStateProvider,
 };
-use reth_rpc::{eth::EthTxBuilder, EthApi, EthFilter};
-use reth_rpc_eth_api::{helpers::EthBlocks, EthFilterApiServer};
+use reth_rpc::EthApi;
+use reth_rpc_eth_api::helpers::EthBlocks;
 use reth_rpc_eth_types::{
-    EthApiBuilderCtx, EthConfig, EthFilterConfig, EthStateCache, EthStateCacheConfig,
-    FeeHistoryCache, FeeHistoryCacheConfig, GasPriceOracle, GasPriceOracleConfig,
+    EthStateCache, EthStateCacheConfig, FeeHistoryCache, FeeHistoryCacheConfig, GasPriceOracle,
+    GasPriceOracleConfig,
 };
 use reth_rpc_server_types::constants::{DEFAULT_ETH_PROOF_WINDOW, DEFAULT_PROOF_PERMITS};
-use reth_tasks::{pool::BlockingTaskPool, TaskManager, TokioTaskExecutor};
+use reth_tasks::{pool::BlockingTaskPool, TokioTaskExecutor};
 use reth_transaction_pool::{
     blobstore::NoopBlobStore, validate::EthTransactionValidatorBuilder, CoinbaseTipOrdering,
     EthPooledTransaction, EthTransactionValidator, Pool, TransactionValidationTaskExecutor,
@@ -41,20 +42,11 @@ use crate::layer::RethDbLayer;
 
 type RethProvider = BlockchainProvider<NodeTypesWithDBAdapter<EthereumNode, Arc<DatabaseEnv>>>;
 type RethApi = EthApi<RethProvider, RethTxPool, NoopNetwork, EthEvmConfig>;
-type RethFilter = EthFilter<RethProvider, RethTxPool, RethApi>;
-// type RethTrace = TraceApi<RethProvider, RethApi>;
-// type RethDebug = DebugApi<RethProvider, RethApi,
-// BasicBlockExecutorProvider<EthExecutionStrategyFactory>>;
 type RethTxPool = Pool<
     TransactionValidationTaskExecutor<EthTransactionValidator<RethProvider, EthPooledTransaction>>,
     CoinbaseTipOrdering<EthPooledTransaction>,
     NoopBlobStore,
 >;
-
-// type RethProvider = BlockchainProvider<NodeTypesWithDBAdapter<EthereumNode,
-// Arc<DatabaseEnv>>>; type RethApi = EthApi<RethProvider, RethTxPool,
-// NoopNetwork, EthEvmConfig>; type RethFilter = EthFilter<RethProvider,
-// RethTxPool, RethApi>; type RethTxPool = NoopTransactionPool;
 
 /// Implement the `ProviderLayer` trait for the `RethDBLayer` struct.
 impl<P, T> ProviderLayer<P, T> for RethDbLayer
@@ -65,7 +57,7 @@ where
     type Provider = RethDbProvider<P, T>;
 
     fn layer(&self, inner: P) -> Self::Provider {
-        RethDbProvider::new(inner, self.db_path().clone(), self.handle())
+        RethDbProvider::new(inner, self.db_path().clone())
     }
 }
 
@@ -77,24 +69,23 @@ where
 #[derive(Clone)]
 pub struct RethDbProvider<P, T> {
     inner: P,
-    // provider_factory: DbAccessor,
     api: RethApi,
-    filter: RethFilter,
+    provider_factory: DbAccessor,
     db_path: PathBuf,
     _pd: PhantomData<T>,
 }
 
 impl<P, T> RethDbProvider<P, T> {
     /// Create a new `RethDbProvider` instance.
-    pub fn new(inner: P, db_path: PathBuf, handle: &tokio::runtime::Handle) -> Self {
-        let task_manager = TaskManager::new(handle.clone());
-        let task_executor = task_manager.executor();
-
-        handle.spawn(task_manager);
-
-        let args = DatabaseArguments::default();
+    pub fn new(inner: P, db_path: PathBuf) -> Self {
+        let args = DatabaseArguments::default()
+            .with_max_read_transaction_duration(Some(MaxReadTransactionDuration::Set(
+                Duration::from_secs(10),
+            )))
+            .with_exclusive(Some(false));
 
         let db = Arc::new(open_db_read_only(db_path.join("db").as_path(), args).unwrap());
+        let task_executor = TokioTaskExecutor::default();
 
         let chain = MAINNET.clone();
         let evm_config = EthEvmConfig::new(chain.clone());
@@ -150,51 +141,33 @@ impl<P, T> RethDbProvider<P, T> {
             FeeHistoryCacheConfig::default(),
         );
 
-        let ctx = EthApiBuilderCtx {
-            provider: provider.clone(),
-            pool: tx_pool.clone(),
-            network: NoopNetwork::default(),
-            evm_config,
-            config: EthConfig::default(),
-            executor: task_executor.clone(),
-            events: TestCanonStateSubscriptions::default(),
-            cache: state_cache.clone(),
-        };
-
-        let api = EthApi::with_spawner(&ctx);
-
-        // let api = EthApi::new(
-        //     provider.clone(),
-        //     tx_pool.clone(),
-        //     NoopNetwork::default(),
-        //     state_cache.clone(),
-        //     GasPriceOracle::new(
-        //         provider.clone(),
-        //         GasPriceOracleConfig::default(),
-        //         state_cache.clone(),
-        //     ),
-        //     ETHEREUM_BLOCK_GAS_LIMIT,
-        //     MAX_SIMULATE_BLOCKS,
-        //     DEFAULT_ETH_PROOF_WINDOW,
-        //     blocking,
-        //     fee_history,
-        //     evm_config.clone(),
-        //     DEFAULT_PROOF_PERMITS,
-        // );
-
-        let filter = EthFilter::new(
+        let api = EthApi::new(
             provider.clone(),
             tx_pool.clone(),
+            NoopNetwork::default(),
             state_cache.clone(),
-            EthFilterConfig::default(),
-            Box::new(task_executor.clone()),
-            EthTxBuilder,
+            GasPriceOracle::new(
+                provider.clone(),
+                GasPriceOracleConfig::default(),
+                state_cache.clone(),
+            ),
+            ETHEREUM_BLOCK_GAS_LIMIT,
+            MAX_SIMULATE_BLOCKS,
+            DEFAULT_ETH_PROOF_WINDOW,
+            blocking,
+            fee_history,
+            evm_config.clone(),
+            DEFAULT_PROOF_PERMITS,
         );
+
+        let db_accessor: DbAccessor<
+            ProviderFactory<NodeTypesWithDBAdapter<EthereumNode, Arc<DatabaseEnv>>>,
+        > = DbAccessor::new(provider_factory);
 
         Self {
             inner,
             db_path,
-            filter,
+            provider_factory: db_accessor,
             _pd: PhantomData,
             api,
         }
@@ -203,6 +176,10 @@ impl<P, T> RethDbProvider<P, T> {
     /// Get the DB Path
     pub fn db_path(&self) -> PathBuf {
         self.db_path.clone()
+    }
+
+    const fn factory(&self) -> &DbAccessor {
+        &self.provider_factory
     }
 }
 
@@ -219,11 +196,23 @@ where
         self.inner.root()
     }
 
-    async fn get_logs(&self, filter: &Filter) -> TransportResult<Vec<Log>> {
-        self.filter
-            .logs(filter.to_owned())
-            .await
-            .map_err(TransportErrorKind::custom)
+    fn get_transaction_count(&self, address: Address) -> RpcWithBlock<T, Address, U64, u64> {
+        let this = self.factory().clone();
+        RpcWithBlock::new_provider(move |block_id| {
+            let provider = this
+                .provider_at(block_id)
+                .map_err(TransportErrorKind::custom)
+                .unwrap();
+
+            let maybe_acc = provider
+                .basic_account(address)
+                .map_err(TransportErrorKind::custom)
+                .unwrap();
+
+            let nonce = maybe_acc.map(|acc| acc.nonce).unwrap_or_default();
+
+            ProviderCall::ready(Ok(nonce))
+        })
     }
 
     fn get_block_receipts(
@@ -242,12 +231,50 @@ where
                     if let Some(receipts) = result {
                         Ok(Some(receipts))
                     } else {
-                        tracing::warn!("No receipts found for block: {:?}", block);
                         root.get_block_receipts(block).await
                     }
                 }
                 Err(e) => return Err(e),
             }
         }))
+    }
+}
+
+#[derive(Debug, Clone)]
+struct DbAccessor<DB = ProviderFactory<NodeTypesWithDBAdapter<EthereumNode, Arc<DatabaseEnv>>>>
+where
+    DB: DatabaseProviderFactory<Provider: TryIntoHistoricalStateProvider + BlockNumReader>,
+{
+    inner: DB,
+}
+
+impl<DB> DbAccessor<DB>
+where
+    DB: DatabaseProviderFactory<Provider: TryIntoHistoricalStateProvider + BlockNumReader>,
+{
+    const fn new(inner: DB) -> Self {
+        Self { inner }
+    }
+
+    fn provider(&self) -> Result<DB::Provider, ProviderError> {
+        self.inner.database_provider_ro()
+    }
+
+    fn provider_at(&self, block_id: BlockId) -> Result<Box<dyn StateProvider>, ProviderError> {
+        let provider = self.inner.database_provider_ro()?;
+
+        let block_number = match block_id {
+            BlockId::Hash(hash) => {
+                if let Some(num) = provider.block_number(hash.into())? {
+                    num
+                } else {
+                    return Err(ProviderError::BlockHashNotFound(hash.into()));
+                }
+            }
+            BlockId::Number(BlockNumberOrTag::Number(num)) => num,
+            _ => provider.best_block_number()?,
+        };
+
+        provider.try_into_history_at_block(block_number)
     }
 }

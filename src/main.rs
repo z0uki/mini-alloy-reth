@@ -4,6 +4,7 @@ use std::{
 };
 
 use alloy::{
+    primitives::address,
     providers::{Provider, ProviderBuilder, RootProvider, WsConnect},
     pubsub::PubSubFrontend,
     rpc::types::Filter,
@@ -61,30 +62,25 @@ fn main() {
 }
 
 async fn batch_get_logs_from_db(provider: Arc<RethProvider>) {
-    let latest_block = provider.get_block_number().await.unwrap();
+    // let latest_block = provider.get_block_number().await.unwrap();
 
-    for number in (latest_block - 10)..latest_block {
-        let receipts = provider.get_block_receipts(number.into()).await.unwrap();
+    // for number in (latest_block - 10)..latest_block {
+    //     let receipts = provider.get_block_receipts(number.into()).await.unwrap();
 
-        println!(
-            "block: {} distance: {} receipts: {:?}",
-            number,
-            latest_block - number,
-            receipts.map(|x| x.len())
-        );
-    }
-
-    // loop {
-    //     let latest_block = provider.get_block_number().await.unwrap();
-    //     println!("Syncing from block {}", latest_block);
-    //     if latest_block == synced {
-    //         tokio::time::sleep(std::time::Duration::from_secs(6)).await;
-    //         continue;
-    //     }
-    //     let receipts = provider.get_block_receipts(21421398.into()).await.unwrap();
-
-    //     println!("Got {:?}", receipts.map(|x| x.len()));
-
-    //     synced = latest_block;
+    //     println!(
+    //         "block: {} distance: {} receipts: {:?}",
+    //         number,
+    //         latest_block - number,
+    //         receipts.map(|x| x.len())
+    //     );
     // }
+
+    let jared = address!("ae2Fc483527B8EF99EB5D9B44875F005ba1FaE13");
+    loop {
+        let latest_block = provider.get_block_number().await.unwrap();
+        let jared_nonce = provider.get_transaction_count(jared).await.unwrap();
+        println!("block: {} nonce: {}", latest_block, jared_nonce);
+
+        tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+    }
 }
